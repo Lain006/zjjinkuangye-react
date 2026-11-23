@@ -31,7 +31,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
@@ -39,6 +38,19 @@ jobs:
       - run: npm run migrate && npm run seed && npm run seed
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Build and smoke-test the production container
+        run: |
+          image="zijin-course:ci"
+          docker build --tag "$image" .
+          export ADMIN_PASSWORD="$(openssl rand -hex 24)"
+          docker run --rm -d --network host --name zijin-course-ci \
+            --env DATABASE_URL --env ADMIN_PASSWORD --env PORT=3201 "$image"
+          trap 'docker stop zijin-course-ci' EXIT
+          curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 3 \
+            http://127.0.0.1:3201/api/v1/health
+          curl --fail --silent --show-error http://127.0.0.1:3201/api/v1/documents | \
+            jq -e '.total >= 8'
+          curl --fail --silent --show-error http://127.0.0.1:3201/ | grep -q 'id="root"'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

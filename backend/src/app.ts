@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
+import compression from 'compression'
 import express from 'express'
 import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'express'
 import type { Pool } from 'pg'
@@ -181,7 +182,7 @@ export function createApp(options: AppOptions) {
   app.use('/api', () => { throw notFound() })
 
   if (staticDirectory) {
-    app.use(express.static(staticDirectory, { index: false }))
+    app.use(compression(), express.static(staticDirectory, { index: false }))
     app.get('/{*path}', (request, response, next) => {
       if (!request.accepts('html') || request.path.split('/').pop()?.includes('.')) return next()
       response.set('Cache-Control', 'no-cache')

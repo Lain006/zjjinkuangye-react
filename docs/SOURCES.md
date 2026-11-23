@@ -10,6 +10,7 @@
 | [Apache ECharts](https://github.com/apache/echarts) | 交互数据图表 | Apache-2.0 |
 | [Motion](https://github.com/motiondivision/motion) / [Lucide](https://github.com/lucide-icons/lucide) | 过渡与图标 | MIT / ISC（含原始 Feather 图标 MIT） |
 | [Express](https://github.com/expressjs/express) / [node-postgres](https://github.com/brianc/node-postgres) | 路由、数据库驱动 | MIT |
+| [Express compression](https://github.com/expressjs/compression) | 静态页面与资源协商压缩 | MIT |
 | [Zod](https://github.com/colinhacks/zod) / [Cheerio](https://github.com/cheeriojs/cheerio) | 验证和官方页面解析 | MIT |
 | [Playwright](https://github.com/microsoft/playwright) / [axe-core](https://github.com/dequelabs/axe-core) | 自动化功能与可访问性检查 | Apache-2.0 / MPL-2.0 |
 
