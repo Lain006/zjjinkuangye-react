@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { CircleAlert, FileSearch, RotateCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { displayDate, type ComplianceDocument } from './api'
 
 export function LoadingBlock({ label = '正在读取文献' }: { label?: string }) {
   return (
@@ -32,16 +31,6 @@ export function StateBlock({
       <p>{detail}</p>
       {retry && <button className="button button--outline" type="button" onClick={retry}><RotateCw size={15} aria-hidden /> 重试</button>}
       {children}
-    </div>
-  )
-}
-
-export function DocumentMeta({ doc }: { doc: ComplianceDocument }) {
-  return (
-    <div className="document-meta">
-      {doc.sourceType && <span className="tag">{doc.sourceType}</span>}
-      {doc.region && <span>{doc.region}</span>}
-      {doc.publishDate && <time dateTime={doc.publishDate}>{displayDate(doc.publishDate)}</time>}
     </div>
   )
 }

@@ -84,6 +84,23 @@ function AdminLogin({ expired, onSuccess }: { expired: boolean; onSuccess: () =>
         <Link className="admin-back-link" to="/"><ArrowLeft size={17} aria-hidden="true" /> 返回公开站点</Link>
         <h1>采集与发布</h1>
         <p>维护资料出处、整理采集草稿，核对后发布到公开资料库。</p>
+        <svg className="admin-folder-illustration" aria-hidden="true" focusable="false" viewBox="0 0 380 190">
+          <g stroke="#394e41" strokeWidth="1.8" strokeLinejoin="round">
+            <path fill="#918e77" stroke="none" opacity=".42" d="M25 162 90 50 348 58 321 169 88 184Z" />
+            <path fill="#9fae98" d="m50 142 9-93 72-13 22 14 144-25 23 108Z" />
+            <path fill="#afacc1" d="m49 137 14-88 65-11 19 12 140-23 12 108Z" />
+            <path fill="#f8f1d9" d="m73 138 12-88 172-25 28 14-11 91Z" />
+            <path fill="#dcceb1" d="m257 25-3 19 31-5Z" />
+            <path fill="none" stroke="#7e8474" strokeWidth="1.2" d="m106 58 62-9m-66 18 98-14m-96 22 87-12" />
+            <path fill="#e4cf9a" d="m39 85 84-11 14 8 165-24-9 88-239 28Z" />
+            <path fill="#e8d6af" d="m39 85 85 13 88-20 90-20-44 70-177 26Z" />
+            <path fill="none" stroke="#a78c61" strokeWidth="1.2" strokeDasharray="3 3" d="m54 104 31 43 170-24 31-47" />
+            <path fill="#b36942" d="m142 121 46-7 17 8-3 20-50 7-13-9Z" />
+            <path fill="#fff5d6" stroke="none" d="m153 129 37-5-1 2-37 5zm1 8 25-4-1 2-25 4Z" />
+            <g fill="#be794f"><ellipse cx="221" cy="90" rx="8" ry="6"/><ellipse cx="227" cy="117" rx="8" ry="6"/></g>
+            <path fill="none" stroke="#57735b" strokeWidth="2" d="M221 88c-7 2-7 7 1 10l9 16c5 5-6 9-10 4-3-4 6-6 9-3l-8-23c-4-5 5-7 5-3m4 29 22 20" />
+          </g>
+        </svg>
       </div>
       <form className="admin-login-form" onSubmit={(event) => void submit(event)}>
         <div className="admin-login-icon"><LockKeyhole size={23} strokeWidth={1.65} aria-hidden="true" /></div>
@@ -136,7 +153,7 @@ function AuditPanel({ data, retry }: { data: Resource<AuditEntry[]>; retry: () =
       {data.kind === 'error' && <ErrorMessage message={explainError(data.error)} retry={retry} />}
       {data.kind === 'ready' && data.value.length === 0 && <p className="admin-audit__empty">暂无操作记录。</p>}
       {visible.length > 0 && (
-        <ol className="admin-audit__feed" id="admin-audit-entries">
+        <ol className="admin-audit__feed" id="admin-audit-entries" aria-labelledby="admin-audit-heading" tabIndex={0}>
           {visible.map((entry) => {
             const date = new Date(entry.createdAt)
             return (
@@ -226,7 +243,7 @@ const filters: { status: DocumentStatus | ''; label: string }[] = [
   { status: 'archived', label: statusLabels.archived },
 ]
 
-type Notice = { kind: 'success' | 'error'; text: string }
+type Notice = { kind: 'success' | 'error'; text: string; documentId?: string }
 type Confirmation = { document: AdminDocument; action: StatusAction }
 
 function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut: () => void }) {
@@ -273,9 +290,9 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
     return explainError(error)
   }
 
-  function showRequestError(error: unknown) {
+  function showRequestError(error: unknown, documentId?: string) {
     const text = expiredOrExplain(error)
-    if (text) setNotice({ kind: 'error', text })
+    if (text) setNotice({ kind: 'error', text, documentId })
   }
 
   function selectEditor(next: EditorState, trigger: HTMLElement | null) {
@@ -289,6 +306,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
     kind: 'intake' | 'edit',
     read: (signal: AbortSignal) => Promise<EditorState>,
     trigger: HTMLElement | null,
+    documentId?: string,
   ) {
     if (activeRead.current || working) return
     const controller = new AbortController()
@@ -299,7 +317,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
       const next = await read(controller.signal)
       if (!controller.signal.aborted) selectEditor(next, trigger)
     } catch (error) {
-      if (!controller.signal.aborted) showRequestError(error)
+      if (!controller.signal.aborted) showRequestError(error, documentId)
     } finally {
       if (!controller.signal.aborted) {
         activeRead.current = null
@@ -318,7 +336,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
     void readBeforeEdit('edit', async (signal) => {
       const document = await adminApi.document(id, signal)
       return { mode: 'edit', initial: document, document }
-    }, trigger)
+    }, trigger, id)
   }
 
   function confirmAction(document: AdminDocument, action: StatusAction, trigger: HTMLElement) {
@@ -337,18 +355,18 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
         const changes = changedDraftFields(editor.document, draft)
         if (!Object.keys(changes).length) {
           setEditor(null)
-          setNotice({ kind: 'success', text: '没有需要保存的修改。' })
+          setNotice({ kind: 'success', text: '没有需要保存的修改。', documentId: editor.document.id })
           return
         }
         await adminApi.update(editor.document.id, changes)
-        setNotice({ kind: 'success', text: '已保存资料修改。' })
+        setNotice({ kind: 'success', text: '已保存资料修改。', documentId: editor.document.id })
       } else {
-        await adminApi.create(draft)
+        const created = await adminApi.create(draft)
         setFilter('draft')
         setSearch('')
         setQuery('')
         setPage(1)
-        setNotice({ kind: 'success', text: '已存为草稿，可在目录中检查并发布。' })
+        setNotice({ kind: 'success', text: '已存为草稿，可在目录中检查并发布。', documentId: created.id })
       }
       setEditor(null)
       refreshData()
@@ -365,7 +383,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
     setActionError('')
     try {
       await adminApi.setStatus(confirm.document.id, confirm.action)
-      setNotice({ kind: 'success', text: confirm.action === 'publish' ? '资料已发布，访客现在可以查看。' : '资料已归档。' })
+      setNotice({ kind: 'success', text: confirm.action === 'publish' ? '资料已发布，访客现在可以查看。' : '资料已归档。', documentId: confirm.document.id })
       setConfirm(null)
       setPage(1)
       refreshData()
@@ -408,6 +426,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
 
   const isPublishing = confirm?.action === 'publish'
   const busy = Boolean(working) || saving
+  const noticeRowVisible = notice?.documentId && documents.kind === 'ready' && documents.value.items.some((item) => item.id === notice.documentId)
 
   return (
     <div className="admin-console">
@@ -445,7 +464,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
         create={startIntake}
       />
 
-      {notice && (
+      {notice && !noticeRowVisible && (!notice.documentId || documents.kind !== 'loading') && (
         <div className={`admin-notice admin-notice--${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
           {notice.kind === 'error' ? <CircleAlert size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}
           {notice.text}
@@ -495,7 +514,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
           {working === 'edit' && <Loading message="正在打开资料" />}
           {documents.kind === 'error' && <ErrorMessage message={explainError(documents.error)} retry={refreshData} />}
           {documents.kind === 'ready' && (
-            <DocumentsTable data={documents.value} actionBusy={busy} onEdit={openDocument} onAction={confirmAction} onPage={changePage} />
+            <DocumentsTable data={documents.value} actionBusy={busy} notice={notice} onEdit={openDocument} onAction={confirmAction} onPage={changePage} />
           )}
         </section>
         <AuditPanel data={audit} retry={refreshData} />

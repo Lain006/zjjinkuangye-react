@@ -59,7 +59,7 @@ test('测试资料保存、发布、独立会话可查与归档', async ({ page,
       await expect(anonymous.getByRole('heading', { name: title })).toBeVisible()
       await expect(anonymous.getByRole('link', { name: '打开原始出处' })).toHaveAttribute('href', input.sourceUrl)
       await anonymous.goto('/analytics')
-      const drilldown = anonymous.getByRole('link', { name: /^跨境资金\s+\d+\s*条$/ })
+      const drilldown = anonymous.getByRole('list', { name: '各主题文献数量与占比' }).getByRole('link', { name: /^跨境资金\s+\d+\s*条/ })
       await drilldown.click()
       await expect(anonymous).toHaveURL(/\/documents\?category=/)
       const data = await (await visitor.get('/api/v1/documents?q=' + encodeURIComponent(title))).json()

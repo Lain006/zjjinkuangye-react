@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, FileText, Filter, Search, X } from 'lucide-react'
-import { m, useReducedMotion } from 'motion/react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, FileText, Filter, FolderOpen, Search, X } from 'lucide-react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { displayDate, publicSource, useApi, withQuery, type ComplianceDocument, type DocumentList } from './api'
-import { DocumentMeta, LoadingBlock, PageHeading, StateBlock } from './components'
+import { LoadingBlock, StateBlock } from './components'
 import { changeFilter, facetOptions, filterKeys, filterLabels, filterValue, readFilters, type Facets } from './filters'
+import './library.css'
 
 const facetList = [
   ['region', 'regions'],
@@ -42,7 +42,7 @@ function DocumentFilters({ params, facets, onApply }: { params: URLSearchParams;
       {facetList.map(([key, field]) => {
         const selection = params.get(key) ?? ''
         return (
-          <label className="field-label" key={key}>
+          <label className="field-label" data-applied={selection ? 'true' : undefined} key={key}>
             <span>{filterLabels[key]}</span>
             <select className="field-control" name={key} defaultValue={selection}>
               <option value="">全部</option>
@@ -138,34 +138,81 @@ function Pagination({ data, params }: { data: DocumentList; params: URLSearchPar
   )
 }
 
-function Preview({ doc, from }: { doc: ComplianceDocument; from: string }) {
+function OriginalSource({ doc, compact = false }: { doc: ComplianceDocument; compact?: boolean }) {
   const source = publicSource(doc.sourceUrl)
-  const reduceMotion = useReducedMotion()
+  return source
+    ? <a className={compact ? 'text-link result-original' : 'button button--primary'} href={source} target="_blank" rel="noopener noreferrer">{compact ? '原文' : '打开原始出处'} <ArrowUpRight size={15} aria-hidden /></a>
+    : compact ? null : <p className="muted">该记录暂未提供可访问的出处链接。</p>
+}
+
+function Preview({ doc, from }: { doc: ComplianceDocument; from: string }) {
   return (
-    <m.div
-      className="preview-body"
-      key={doc.id}
-      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18 }}
-    >
-      <DocumentMeta doc={doc} />
-      <h2>{doc.title}</h2>
-      <p>{doc.summary || '这份文献暂未整理摘要。'}</p>
-      <dl><dt>来源</dt><dd>{doc.sourceName || '未记录'}</dd><dt>主题</dt><dd>{doc.category || '未分类'}</dd></dl>
-      <Link className="button button--primary" state={{ from }} to={`/documents/${encodeURIComponent(doc.id)}`}>阅读完整记录 <ArrowRight size={16} aria-hidden /></Link>
-      {source && <a className="text-link" href={source} target="_blank" rel="noopener noreferrer">查看原文 <ArrowUpRight size={15} aria-hidden /></a>}
-    </m.div>
+    <div className="source-preview">
+      <h3>{doc.sourceName || '来源机构未记录'}</h3>
+      <dl className="source-facts">
+        <div><dt>发布日期</dt><dd>{displayDate(doc.publishDate)}</dd></div>
+        <div><dt>采集日期</dt><dd>{displayDate(doc.collectedAt)}</dd></div>
+        <div><dt>来源类型</dt><dd>{doc.sourceType || '未记录'}</dd></div>
+      </dl>
+      <OriginalSource doc={doc} />
+      {doc.excerpt && <div className="preview-excerpt"><h4>正文摘录</h4><blockquote>{doc.excerpt}</blockquote></div>}
+      <Link className="text-link" state={{ from }} to={`/documents/${encodeURIComponent(doc.id)}`}>阅读完整记录 <ArrowRight size={16} aria-hidden /></Link>
+    </div>
   )
 }
 
 function DocumentResults({ data, params, from }: { data: DocumentList; params: URLSearchParams; from: string }) {
   const [selected, setSelected] = useState<string>()
   const active = data.items.find((doc) => doc.id === selected) ?? data.items[0]
+  const preview = useRef<HTMLElement>(null)
+  const wire = useRef<SVGPathElement>(null)
+  const drawing = useRef<Animation | null>(null)
+  const frame = useRef(0)
+
+  useEffect(() => {
+    const stop = () => {
+      cancelAnimationFrame(frame.current)
+      drawing.current?.cancel()
+    }
+    window.addEventListener('scroll', stop, { passive: true })
+    window.addEventListener('resize', stop)
+    return () => {
+      stop()
+      window.removeEventListener('scroll', stop)
+      window.removeEventListener('resize', stop)
+    }
+  }, [])
+
+  function selectRecord(id: string, trigger: HTMLButtonElement) {
+    const title = trigger.closest('li')?.querySelector('h3 a')
+    setSelected(id)
+    drawing.current?.cancel()
+    cancelAnimationFrame(frame.current)
+    if (!title || document.documentElement.dataset.motion === 'paused' || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    frame.current = requestAnimationFrame(() => {
+      const destination = preview.current?.getBoundingClientRect()
+      const path = wire.current
+      if (!path || !destination?.width) return
+      const titleLines = title.getClientRects()
+      const lastLine = titleLines.item(titleLines.length - 1)
+      if (!lastLine) return
+
+      const x = Math.min(lastLine.right + 3, destination.left - 18)
+      const y = lastLine.bottom - 1
+      const elbow = destination.left - 12
+      const corner = destination.top + 12
+      path.setAttribute('d', `M ${x} ${y} H ${elbow - 5} Q ${elbow} ${y} ${elbow} ${y + (corner >= y ? 5 : -5)} V ${corner} H ${destination.left} V ${destination.top} H ${destination.right - 2} V ${destination.top + 30}`)
+      drawing.current = path.animate([
+        { strokeDashoffset: '1', opacity: 1 },
+        { offset: .6, strokeDashoffset: '0', opacity: 1 },
+        { strokeDashoffset: '0', opacity: 0 },
+      ], { duration: 820, easing: 'cubic-bezier(.24,.70,.34,1)' })
+    })
+  }
 
   if (!active) {
     return (
-      <div className="empty-results">
+      <div className="empty-results" data-carry-destination>
         <StateBlock title="没有找到文献" detail={params.size ? '试试缩短关键词，或清除筛选条件扩大搜索范围。' : '文献发布后会在这里显示。'}>
           {params.size > 0 && <Link className="button button--outline" to="/documents">清除筛选</Link>}
         </StateBlock>
@@ -177,16 +224,17 @@ function DocumentResults({ data, params, from }: { data: DocumentList; params: U
   return (
     <>
       <div className="library-results">
-        <div className="results-top"><h2>检索结果</h2><span role="status">{data.total.toLocaleString('zh-CN')} 条文献</span></div>
+        <div className="results-top" data-carry-destination><h2>检索结果</h2><span role="status">{data.total.toLocaleString('zh-CN')} 条文献</span></div>
         <ul className="result-list">
           {data.items.map((doc) => (
             <li className={`result-item${doc.id === active.id ? ' result-item--selected' : ''}`} key={doc.id}>
-              <DocumentMeta doc={doc} />
               <h3><Link state={{ from }} to={`/documents/${encodeURIComponent(doc.id)}`}>{doc.title}</Link></h3>
+              <div className="result-source"><span>{doc.sourceName || '来源待补充'}</span>{doc.publishDate && <time dateTime={doc.publishDate}>{displayDate(doc.publishDate)}</time>}</div>
               {doc.summary && <p>{doc.summary}</p>}
               <div className="result-foot">
-                <span>{doc.sourceName || '来源待补充'}</span>
-                <button type="button" className="inline-button preview-action" aria-pressed={doc.id === active.id} onClick={() => setSelected(doc.id)}>
+                <span className="result-classification">{doc.sourceType && <span>{doc.sourceType}</span>}{doc.region && <span>{doc.region}</span>}</span>
+                <OriginalSource doc={doc} compact />
+                <button type="button" className="inline-button preview-action" aria-controls="document-preview" aria-pressed={doc.id === active.id} onClick={(event) => selectRecord(doc.id, event.currentTarget)}>
                   {doc.id === active.id ? '预览中' : '预览'} <ArrowRight size={15} aria-hidden />
                 </button>
               </div>
@@ -195,10 +243,11 @@ function DocumentResults({ data, params, from }: { data: DocumentList; params: U
         </ul>
         <Pagination data={data} params={params} />
       </div>
-      <aside className="library-preview panel" aria-label="文献预览">
-        <div className="preview-heading"><FileText size={17} aria-hidden /> 文献预览</div>
+      <aside ref={preview} id="document-preview" className="library-preview panel" aria-label="文献预览">
+        <h2 className="preview-heading"><FileText size={17} aria-hidden /> 来源核对</h2>
         <Preview doc={active} from={from} />
       </aside>
+      <svg className="archive-source-wire" aria-hidden="true" focusable="false"><path ref={wire} pathLength={1} /></svg>
     </>
   )
 }
@@ -237,9 +286,9 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="container route-space">
-      <PageHeading label="文献库" title="合规文献库">检索公开政策、企业披露与行业材料。每篇文献附来源及采集记录。</PageHeading>
-      <div className="library-toolbar">
+    <div className="container route-space library-workbench">
+      <header className="library-toolbar">
+        <div className="archive-tab-title"><FolderOpen aria-hidden size={28} strokeWidth={1.5} /><h1>合规文献库</h1></div>
         <form className="library-search" onSubmit={search}>
           <Search size={20} aria-hidden />
           <input ref={searchInput} aria-label="检索文献关键词" name="q" type="search" maxLength={120} defaultValue={submittedSearch} placeholder="搜索标题、摘要或文本摘录" />
@@ -247,7 +296,7 @@ export function LibraryPage() {
         </form>
         <FilterSheet params={params} facets={facets} onApply={setQuery} />
         <Link className="text-link library-analysis" to={withQuery('/analytics', params)}>分析当前范围 <ArrowUpRight size={16} aria-hidden /></Link>
-      </div>
+      </header>
       <ActiveFilters params={params} />
       <div className="library-layout">
         <aside className="library-filters panel" aria-label="文献筛选">
@@ -272,7 +321,7 @@ export function DocumentPage() {
   const document = useApi<ComplianceDocument>(`/documents/${encodeURIComponent(id)}`)
 
   return (
-    <div className="container route-space detail-page">
+    <div className="container route-space reading-page">
       <Link className="text-link detail-back" to={libraryUrl}><ArrowLeft size={17} aria-hidden /> 返回文献库</Link>
       {document.status === 'loading' && <LoadingBlock />}
       {document.status === 'error' && <StateBlock
@@ -288,37 +337,37 @@ export function DocumentPage() {
 }
 
 function DocumentDetail({ doc }: { doc: ComplianceDocument }) {
-  const source = publicSource(doc.sourceUrl)
   return (
-    <>
-      <header className="detail-heading">
-        <DocumentMeta doc={doc} />
-        <h1>{doc.title}</h1>
-        {doc.summary && <p>{doc.summary}</p>}
+    <article className="evidence-record">
+      <header className="record-heading">
+        <div className="record-title">
+          <div className="result-classification">{doc.sourceType && <span>{doc.sourceType}</span>}{doc.region && <span>{doc.region}</span>}</div>
+          <h1>{doc.title}</h1>
+        </div>
+        <div className="record-provenance">
+          <div><strong>{doc.sourceName || '来源机构未记录'}</strong><span>发布日期 {displayDate(doc.publishDate)}</span></div>
+          <OriginalSource doc={doc} />
+        </div>
       </header>
-      <div className="detail-layout">
-        <article className="detail-article panel">
-          <section>
+      <div className="record-columns">
+        <div className="record-body">
+          {doc.summary && <section className="record-summary"><h2>资料摘要</h2><p>{doc.summary}</p></section>}
+          <section className="record-excerpt">
             <h2>正文摘录</h2>
             {doc.excerpt ? <blockquote>{doc.excerpt}</blockquote> : <p className="muted">暂未整理正文摘录。</p>}
           </section>
-          {doc.analysis && <section><h2>课程分析</h2><p>{doc.analysis}</p></section>}
-        </article>
-        <aside className="detail-source panel" aria-label="来源与采集">
-          <div className="panel-title"><FileText size={18} aria-hidden /><h2>来源与采集</h2></div>
-          <dl>
-            <div><dt>来源机构</dt><dd>{doc.sourceName || '未记录'}</dd></div>
+          {doc.analysis && <section className="record-analysis"><h2>课程分析</h2><p>{doc.analysis}</p></section>}
+        </div>
+        <aside className="record-catalog" aria-label="编目记录">
+          <h2>编目记录</h2>
+          <dl className="source-facts">
             <div><dt>主题</dt><dd>{doc.category
               ? <Link className="text-link" to={withQuery('/documents', new URLSearchParams({ category: doc.category }))}>{doc.category}</Link>
               : '未分类'}</dd></div>
-            <div><dt>发布日期</dt><dd>{displayDate(doc.publishDate)}</dd></div>
             <div><dt>采集日期</dt><dd>{displayDate(doc.collectedAt)}</dd></div>
           </dl>
-          {source
-            ? <a className="button button--primary" href={source} target="_blank" rel="noopener noreferrer">打开原始出处 <ArrowUpRight size={17} aria-hidden /></a>
-            : <p className="muted">该记录暂未提供可访问的出处链接。</p>}
         </aside>
       </div>
-    </>
+    </article>
   )
 }

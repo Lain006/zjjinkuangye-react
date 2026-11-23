@@ -1,0 +1,22 @@
+.ore-wave-motion { animation: rock-bed-travel 15s linear infinite; }
+.ore-wave-trace {
+  fill: none;
+  stroke-width: 1.4;
+  stroke-dasharray: 1 1;
+  animation: rock-trace-draw 8.5s ease-in-out infinite;
+  animation-delay: inherit;
+}
+.mineral-plate[data-running="false"] :is(.ore-wave-motion, .ore-wave-trace) { animation-play-state: paused; }
+@keyframes rock-bed-travel {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--ore-distance)); }
+}
+@keyframes rock-trace-draw {
+  0%, 8% { stroke-dashoffset: 1; }
+  36%, 58% { stroke-dashoffset: 0; }
+  89%, 100% { stroke-dashoffset: -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mineral-plate :is(.ore-wave-motion, .ore-wave-trace) { animation: none !important; }
+  .ore-wave-trace { stroke-dashoffset: 0; }
+}

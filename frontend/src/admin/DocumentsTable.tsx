@@ -14,12 +14,13 @@ export type StatusAction = 'publish' | 'archive'
 type Props = {
   data: DocumentPage
   actionBusy: boolean
+  notice: { documentId?: string; kind: 'error' | 'success'; text: string } | null
   onEdit: (id: string, trigger: HTMLButtonElement) => void
   onAction: (document: AdminDocument, action: StatusAction, trigger: HTMLButtonElement) => void
   onPage: (page: number) => void
 }
 
-export default function DocumentsTable({ data, actionBusy, onEdit, onAction, onPage }: Props) {
+export default function DocumentsTable({ data, actionBusy, notice, onEdit, onAction, onPage }: Props) {
   const columns = useMemo<ColumnDef<AdminDocument>[]>(() => [
     {
       accessorKey: 'title',
@@ -29,12 +30,19 @@ export default function DocumentsTable({ data, actionBusy, onEdit, onAction, onP
           <button
             className="admin-document-link"
             type="button"
+            aria-label={`编辑《${row.original.title}》`}
             onClick={(event) => onEdit(row.original.id, event.currentTarget)}
             disabled={actionBusy}
           >
-            {row.original.title}
+            <span>{row.original.title}</span>
+            <PencilLine size={14} aria-hidden="true" />
           </button>
           <span>{row.original.sourceName} · {row.original.category}</span>
+          {notice?.documentId === row.original.id && (
+            <small className={`admin-row-feedback admin-row-feedback--${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
+              {notice.text}
+            </small>
+          )}
         </div>
       ),
     },
@@ -61,15 +69,6 @@ export default function DocumentsTable({ data, actionBusy, onEdit, onAction, onP
         const document = row.original
         return (
           <div className="admin-row-actions">
-            <button
-              type="button"
-              className="admin-row-button"
-              aria-label={`编辑《${document.title}》`}
-              onClick={(event) => onEdit(document.id, event.currentTarget)}
-              disabled={actionBusy}
-            >
-              <PencilLine size={14} aria-hidden="true" /> 编辑
-            </button>
             {document.status !== 'published' && (
               <button
                 type="button"
@@ -96,7 +95,7 @@ export default function DocumentsTable({ data, actionBusy, onEdit, onAction, onP
         )
       },
     },
-  ], [actionBusy, onAction, onEdit])
+  ], [actionBusy, notice, onAction, onEdit])
 
   const table = useReactTable({
     data: data.items,
