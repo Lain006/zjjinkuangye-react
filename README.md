@@ -32,8 +32,13 @@ npm run dev
 npm run typecheck
 npm run lint
 npm run build
+# 首次用 Compose 验收时创建独立测试库
+docker compose exec -T db createdb -U zj_course zj_course_test
 $env:TEST_DATABASE_URL = 'postgresql://zj_course@127.0.0.1:55432/zj_course_test'
 npm test
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+npm run migrate
+npm run seed
 npx playwright install chromium
 npm run test:e2e
 ```
