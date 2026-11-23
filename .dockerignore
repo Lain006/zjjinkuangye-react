@@ -1,0 +1,8 @@
+.git
+**/node_modules
+**/dist
+.local
+**/.env*
+test-results
+playwright-report
+docs/个人报告/提交稿

@@ -1,0 +1,46 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: zj_course
+          POSTGRES_DB: zj_course
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zj_course -d zj_course"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://zj_course@127.0.0.1:55432/zj_course
+      TEST_DATABASE_URL: postgresql://zj_course@127.0.0.1:55432/zj_course
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm run migrate && npm run seed && npm run seed
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report

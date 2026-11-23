@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.local/
+test-results/
+playwright-report/
+*.dump
+*.sql.gz
+docs/个人报告/提交稿/

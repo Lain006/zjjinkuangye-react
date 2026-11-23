@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: zj_course
+      POSTGRES_DB: zj_course
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - zj_course_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zj_course -d zj_course"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+volumes:
+  zj_course_data:
