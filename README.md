@@ -7,8 +7,10 @@
 | 交付 | 地址 |
 | --- | --- |
 | GitHub | [Lain006/zjjinkuangye-react](https://github.com/Lain006/zjjinkuangye-react) |
-| 公网前端 | 等待免费部署验收 |
-| 公网后端 | 等待免费部署验收，接口路径为 `/api/v1/documents` |
+| 公网前端 | [紫金矿业跨境合规文献库](https://zjjinkuangye-react.onrender.com/) |
+| 公网后端 | [文献查询 API](https://zjjinkuangye-react.onrender.com/api/v1/documents) |
+
+答辩应用版本固定为 [v1.0.0](https://github.com/Lain006/zjjinkuangye-react/tree/v1.0.0)。
 
 ## 本地运行
 
