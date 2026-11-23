@@ -24,6 +24,11 @@ export type Source = { id: string; label: string; url: string }
 export type AuditEntry = { id: string; action: string; documentId: string; createdAt: string }
 export type DocumentPage = { items: AdminDocument[]; page: number; pageSize: number; total: number }
 
+export function changedDraftFields(initial: DraftInput, draft: DraftInput): Partial<DraftInput> {
+  const keys = Object.keys(draft) as (keyof DraftInput)[]
+  return Object.fromEntries(keys.filter((key) => draft[key] !== initial[key]).map((key) => [key, draft[key]]))
+}
+
 const apiBase = '/api/v1/admin'
 
 export class AdminApiError extends Error {
@@ -168,9 +173,9 @@ export const adminApi = {
     method: 'POST',
     body: JSON.stringify(draft),
   }),
-  update: (id: string, draft: DraftInput) => request(`/documents/${encodeURIComponent(id)}`, decodeDocument, {
+  update: (id: string, changes: Partial<DraftInput>) => request(`/documents/${encodeURIComponent(id)}`, decodeDocument, {
     method: 'PATCH',
-    body: JSON.stringify(draft),
+    body: JSON.stringify(changes),
   }),
   setStatus: (id: string, action: 'publish' | 'archive') => request(
     `/documents/${encodeURIComponent(id)}/${action}`,

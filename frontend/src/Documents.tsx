@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, FileText, Filter, Search, X } from 'lucide-react'
 import { m, useReducedMotion } from 'motion/react'
@@ -111,8 +111,12 @@ function ActiveFilters({ params }: { params: URLSearchParams }) {
   )
 }
 
+function pageCount(data: DocumentList) {
+  return Math.max(1, Math.ceil(data.total / data.pageSize))
+}
+
 function Pagination({ data, params }: { data: DocumentList; params: URLSearchParams }) {
-  const pages = Math.max(1, Math.ceil(data.total / data.pageSize))
+  const pages = pageCount(data)
   if (pages < 2 && data.page < 2) return null
 
   function pageUrl(page: number) {
@@ -203,11 +207,28 @@ export function LibraryPage() {
   const [query, setQuery] = useSearchParams()
   const location = useLocation()
   const params = readFilters(query)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const submittedSearch = params.get('q') ?? ''
   const apiQuery = new URLSearchParams(params)
   const page = query.get('page')
   if (page && /^[1-9]\d{0,5}$/.test(page)) apiQuery.set('page', page)
   const documents = useApi<DocumentList>(withQuery('/documents', apiQuery))
-  const facets = documents.status === 'ready' ? documents.data.facets : undefined
+  const results = documents.status === 'ready' ? documents.data : null
+  const lastPage = results ? pageCount(results) : 1
+  const outOfBounds = Boolean(results && results.page > lastPage)
+  const facets = results?.facets
+
+  useEffect(() => {
+    if (searchInput.current) searchInput.current.value = submittedSearch
+  }, [submittedSearch])
+
+  useEffect(() => {
+    if (!outOfBounds) return
+    const corrected = new URLSearchParams(query)
+    if (lastPage === 1) corrected.delete('page')
+    else corrected.set('page', String(lastPage))
+    setQuery(corrected, { replace: true })
+  }, [lastPage, outOfBounds, query, setQuery])
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -219,9 +240,9 @@ export function LibraryPage() {
     <div className="container route-space">
       <PageHeading label="文献库" title="合规文献库">检索公开政策、企业披露与行业材料。每篇文献附来源及采集记录。</PageHeading>
       <div className="library-toolbar">
-        <form className="library-search" onSubmit={search} key={params.get('q') ?? ''}>
+        <form className="library-search" onSubmit={search}>
           <Search size={20} aria-hidden />
-          <input aria-label="检索文献关键词" name="q" type="search" maxLength={120} defaultValue={params.get('q') ?? ''} placeholder="搜索标题、摘要或文本摘录" />
+          <input ref={searchInput} aria-label="检索文献关键词" name="q" type="search" maxLength={120} defaultValue={submittedSearch} placeholder="搜索标题、摘要或文本摘录" />
           <button type="submit" className="button button--primary">检索</button>
         </form>
         <FilterSheet params={params} facets={facets} onApply={setQuery} />
@@ -233,11 +254,11 @@ export function LibraryPage() {
           <div className="panel-title"><Filter size={17} aria-hidden /><h2>筛选</h2></div>
           <DocumentFilters key={params.toString()} params={params} facets={facets} onApply={setQuery} />
         </aside>
-        {documents.status === 'loading' && <div className="empty-results"><LoadingBlock /></div>}
+        {(documents.status === 'loading' || outOfBounds) && <div className="empty-results"><LoadingBlock /></div>}
         {documents.status === 'error' && <div className="empty-results"><StateBlock title="暂时无法读取文献" detail={documents.message} retry={documents.code === 400 ? undefined : documents.retry}>
           {documents.code === 400 && <Link className="button button--outline" to="/documents">清除筛选</Link>}
         </StateBlock></div>}
-        {documents.status === 'ready' && <DocumentResults key={apiQuery.toString()} data={documents.data} params={params} from={location.pathname + location.search} />}
+        {results && !outOfBounds && <DocumentResults key={apiQuery.toString()} data={results} params={params} from={location.pathname + location.search} />}
       </div>
     </div>
   )

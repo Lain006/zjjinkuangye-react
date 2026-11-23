@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import DocumentEditor, { AdminModal, emptyDraft, isSecureSource, type EditorState } from './DocumentEditor'
 import DocumentsTable, { statusLabels, type StatusAction } from './DocumentsTable'
-import { adminApi, AdminApiError, explainError, type AdminDocument, type AuditEntry, type DocumentStatus, type DraftInput, type Source } from './api'
+import { adminApi, AdminApiError, changedDraftFields, explainError, type AdminDocument, type AuditEntry, type DocumentStatus, type DraftInput, type Source } from './api'
 import './admin.css'
 
 type Resource<T> = { kind: 'loading' } | { kind: 'ready'; value: T } | { kind: 'error'; error: unknown }
@@ -332,7 +332,13 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
     setActionError('')
     try {
       if (editor.document) {
-        await adminApi.update(editor.document.id, draft)
+        const changes = changedDraftFields(editor.document, draft)
+        if (!Object.keys(changes).length) {
+          setEditor(null)
+          setNotice({ kind: 'success', text: '没有需要保存的修改。' })
+          return
+        }
+        await adminApi.update(editor.document.id, changes)
         setNotice({ kind: 'success', text: '已保存资料修改。' })
       } else {
         await adminApi.create(draft)

@@ -11,6 +11,7 @@ const httpsUrl = z.url({ protocol: /^https$/ }).max(2048).refine((value) => {
   const url = new URL(value)
   return !url.username && !url.password && noNullBytes(value)
 }, '来源链接不能包含凭据')
+  .transform((value) => new URL(value).href).pipe(z.string().max(2048))
 const collectedAt = z.union([z.iso.date(), z.iso.datetime({ offset: true })])
   .transform((value) => new Date(value).toISOString())
 

@@ -10,9 +10,9 @@
 - 从独立端到端测试库备份业务表到本地文件，恢复至另一数据库，逐行比较 35 条文档和 3 条审计记录一致。会话表不进入备份。
 
 - Playwright 4/4 在真实 PostgreSQL 和生产构建下通过。覆盖匿名会话内可查、图表筛选回跳、重复提交、拒绝匿名写入、失败重试、窄屏键盘焦点及 axe 检查。
-- Edge 158 检查桌面和 320／390／768／1440 像素视口，以及 720 CSS px 的 200% 等效宽度。390 像素暖缓存移动模拟使用 150ms RTT、1.6Mbps 下行、CPU 4×，三次首页 LCP 为 788／620／652 ms、CLS 均为 0。首屏 JS 估算 gzip 132,749 字节。截图和性能原始记录位于本机 `.local/`。
+- Edge 158 检查桌面和 320／390／768／1440 像素视口，以及 720 CSS px 的 200% 等效宽度。390 像素暖缓存移动模拟使用 150ms RTT、1.6Mbps 下行、CPU 4×，三次首页 LCP 为 788／620／652 ms、CLS 均为 0。文献库三次 LCP 为 552／536／552 ms，CLS 均为 0。经 HTTP 实测首屏 JS gzip 132,889 字节。截图和性能原始记录位于本机 `.local/`。
 - 在真实 PostgreSQL 接口上，用 Edge 的维护员页面试采三亚市投资促进局 CTC 座谈会，源链接、标题与显示发布日期 2026-07-27 一致。取消预览后数据库记录数无变化。
-- 首次 GitHub Actions 验证成功。 [运行记录](https://github.com/Lain006/zjjinkuangye-react/actions/runs/45134420584)
+- GitHub Actions 验证通过，包括生产 Docker 镜像构建和真实 PostgreSQL 容器冒烟。 [运行记录](https://github.com/Lain006/zjjinkuangye-react/actions/runs/45135197797)
 
 ## 公网与人工验收
 

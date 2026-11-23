@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { ArrowUpRight, Database, Layers3 } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { HomePage } from './HomePage'
@@ -11,9 +11,10 @@ const apiBase = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
 export default function App() {
   const { pathname } = useLocation()
+  const main = useRef<HTMLElement>(null)
+  const previousPath = useRef<string | null>(null)
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
     const labels: Record<string, string> = {
       '/': '首页',
       '/documents': '文献库',
@@ -21,6 +22,12 @@ export default function App() {
       '/admin': '采集管理',
     }
     document.title = `${labels[pathname] ?? '文献详情'} · 紫金矿业跨境合规文献平台`
+
+    const changedRoute = previousPath.current !== null && previousPath.current !== pathname
+    const openedDirectDocument = previousPath.current === null && pathname.startsWith('/documents/')
+    previousPath.current = pathname
+    if (changedRoute || openedDirectDocument) main.current?.focus({ preventScroll: true })
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }, [pathname])
 
   return (
@@ -43,7 +50,7 @@ export default function App() {
           </nav>
         </div>
       </header>
-      <main id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1} ref={main}>
         <Suspense fallback={<div className="container route-space"><LoadingBlock label="正在打开页面" /></div>}>
           <Routes>
             <Route path="/" element={<HomePage />} />

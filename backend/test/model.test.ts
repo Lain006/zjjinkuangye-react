@@ -12,6 +12,7 @@ test('documents validate boundaries and normalize the legacy collection date', (
   assert.equal(documentInput.parse({ ...base, collectedAt: '2026-02-01' }).collectedAt, '2026-02-01T00:00:00.000Z')
   assert.equal(documentInput.safeParse({ ...base, publishDate: '2026-02-29' }).success, false)
   assert.equal(documentInput.safeParse({ ...base, sourceUrl: 'file:///private' }).success, false)
+  assert.equal(documentInput.parse({ ...base, sourceUrl: 'HTTPS://EXAMPLE.COM:443/a' }).sourceUrl, base.sourceUrl)
   assert.equal(documentInput.safeParse({ ...base, status: 'published' }).success, false)
   assert.equal(documentPatch.safeParse({}).success, false)
   assert.equal(analyticsQuery.safeParse({ dateFrom: '2026-11-01', dateTo: '2026-10-01' }).success, false)
