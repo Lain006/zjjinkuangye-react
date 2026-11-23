@@ -9,11 +9,14 @@
 | 数据库连通检查 | [Health](https://zjjinkuangye-react.onrender.com/api/v1/health) |
 | 应用托管 | Render Free，新加坡 |
 | 真实数据库 | Neon Free，PostgreSQL 17，新加坡 |
-| 应用提交 | [fdec825](https://github.com/Lain006/zjjinkuangye-react/commit/fdec8257eee8648982b880c46aa6b01d1f99e309) |
+| 应用提交 | [4010ca3](https://github.com/Lain006/zjjinkuangye-react/commit/4010ca34b44ade98b03eaf8481107de0ceac97b9) |
+| 部署记录 | [2026-11-24 Render 部署](https://dashboard.render.com/web/srv-dc1veqp42hec738ii7j0/deploys/dep-dc2a7pff3r2c73fukpcg) |
 
 Northflank 的免费工作区创建服务时要求绑卡验证，用户选择使用不绑卡的 Render Free。Render 通过仓库根目录 Dockerfile 构建。环境变量 `DATABASE_URL` 配置 Neon 的 TLS 连接，`ADMIN_PASSWORD` 由组员在 Render 环境变量界面管理。部署根目录保持仓库根，并可从根目录的 `render.yaml` 查看配置。
 
 部署完成后打开首页、深链接及实际 JSON API。健康探针为 `/api/v1/livez`，它只验证 Node 进程。人工检查 `/api/v1/health` 时会真实查询数据库。分支自动部署已关闭，答辩版由组长手动定位指定 commit 更新。
+
+2026-11-24 手动部署地质纸偶剧场版。公网首页、文献库、分析页和维护入口返回与本地生产构建相同的前端入口资源。公网分析资源包含主题分布、文献发布时间轨和地区标本点阵。数据库健康检查通过，发布前后公开聚合结果一致，含 8 条公开文献、3 个主题、8 个发布月份、2 个地区。[GitHub Actions 检查](https://github.com/Lain006/zjjinkuangye-react/actions/runs/45260193312)
 
 Render Free 空闲 15 分钟会休眠，答辩前从校园网和手机流量分别打开首页与真实文献 API，使服务和数据库恢复，再做冷启动和真实设备记录。 [Render 免费服务说明](https://render.com/docs/free)
 
