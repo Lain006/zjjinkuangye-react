@@ -15,3 +15,5 @@
 | [Playwright](https://github.com/microsoft/playwright) / [axe-core](https://github.com/dequelabs/axe-core) | 自动化功能与可访问性检查 | Apache-2.0 / MPL-2.0 |
 
 实际安装版本见 npm 锁文件。[Shadcn Admin](https://github.com/satnaing/shadcn-admin) 和 [Datasette](https://github.com/simonw/datasette) 用于导航、筛选及出处回查交互的研究。本项目保留旧仓基线和公开来源记录，采用自编摘要、专题和界面。公开内容证据见 [来源核验](SEED-AUDIT.md)。
+
+- [SheetJS Community Edition](https://docs.sheetjs.com/docs/getting-started/installation/nodejs/)（Apache-2.0），沿用旧项目的官方 0.20.3 版本，通过按需加载解析 Excel 和 CSV。

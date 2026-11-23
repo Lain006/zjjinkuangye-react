@@ -6,7 +6,7 @@ import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'exp
 import type { Pool } from 'pg'
 import { z } from 'zod'
 import { createRateLimit, sessions } from './auth.ts'
-import { createDocument, getAnalytics, getDocument, listAudit, listDocuments, reviseDocument } from './documents.ts'
+import { createDocument, getAnalytics, getDocument, importDocuments, listAudit, listDocuments, reviseDocument } from './documents.ts'
 import { collectDraft, sources } from './intake.ts'
 import { adminListQuery, analyticsQuery, documentId, documentInput, documentPatch, listQuery } from './model.ts'
 
@@ -156,6 +156,17 @@ export function createApp(options: AppOptions) {
     const document = await getDocument(pool, documentId.parse(request.params.id), false)
     if (!document) throw notFound()
     response.json(document)
+  })
+  admin.post('/documents/import', express.json({ limit: '2mb' }), async (request, response) => {
+    const input = z.strictObject({ documents: z.array(documentInput).min(1).max(100) }).safeParse(request.body)
+    if (!input.success) {
+      const [, index, field] = input.error.issues[0]?.path ?? []
+      const message = typeof index === 'number'
+        ? `第 ${index + 1} 条资料的 ${String(field ?? '记录')} 格式无效，整批未写入。`
+        : '每批至少 1 条、最多 100 条资料。'
+      throw new ApiError(400, 'INVALID_INPUT', message)
+    }
+    response.json(await importDocuments(pool, input.data.documents))
   })
   admin.post('/documents', parseJson, async (request, response) => {
     response.status(201).json(await createDocument(pool, documentInput.parse(request.body)))

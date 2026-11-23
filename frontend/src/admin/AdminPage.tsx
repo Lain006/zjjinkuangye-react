@@ -5,6 +5,7 @@ import {
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import DocumentEditor, { AdminModal, emptyDraft, isSecureSource, type EditorState } from './DocumentEditor'
+import DocumentImport from './DocumentImport'
 import DocumentsTable, { statusLabels, type StatusAction } from './DocumentsTable'
 import { adminApi, AdminApiError, changedDraftFields, explainError, type AdminDocument, type AuditEntry, type DocumentStatus, type DraftInput, type Source } from './api'
 import './admin.css'
@@ -236,6 +237,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
   const [refresh, setRefresh] = useState(0)
   const [sourcesRefresh, setSourcesRefresh] = useState(0)
   const [editor, setEditor] = useState<EditorState | null>(null)
+  const [importing, setImporting] = useState(false)
   const [confirm, setConfirm] = useState<Confirmation | null>(null)
   const [working, setWorking] = useState<'intake' | 'edit' | 'logout' | ''>('')
   const [saving, setSaving] = useState(false)
@@ -424,6 +426,11 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
           >
             <FilePlus2 size={18} aria-hidden="true" /> 手动录入
           </button>
+          <button className="admin-button" type="button" disabled={busy} onClick={(event) => {
+            lastTrigger.current = event.currentTarget
+            setNotice(null)
+            setImporting(true)
+          }}>批量导入</button>
           <button className="admin-button" type="button" onClick={() => void logout()} disabled={busy}>
             <LogOut size={16} aria-hidden="true" /> {working === 'logout' ? '正在退出' : '退出登录'}
           </button>
@@ -494,6 +501,18 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
         <AuditPanel data={audit} retry={refreshData} />
       </div>
 
+      {importing && (
+        <DocumentImport onClose={() => setImporting(false)} restoreFocus={restoreFocus} onError={expiredOrExplain}
+          onImported={(created, skipped) => {
+            setImporting(false)
+            setNotice({ kind: 'success', text: `已导入 ${created} 条草稿，跳过 ${skipped} 条重复来源。` })
+            setFilter('draft')
+            setPage(1)
+            setQuery('')
+            setSearch('')
+            refreshData()
+          }} />
+      )}
       {editor && (
         <DocumentEditor editor={editor} busy={saving} error={actionError} onSave={(draft) => void save(draft)} onClose={() => setEditor(null)} restoreFocus={restoreFocus} />
       )}

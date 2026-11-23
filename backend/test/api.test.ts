@@ -123,6 +123,20 @@ test('PostgreSQL-backed publication, collection, visibility, audit and session l
     assert.equal((await request(`/documents/${document.id}`)).status, 404)
     const audit = await (await request('/admin/audit')).json()
     assert.deepEqual(audit.items.map((item: { action: string }) => item.action), ['archive', 'publish', 'update', 'create'])
+    const newDraft = { ...sample, sourceUrl: 'https://example.com/imported' }
+    const badBatch = await request('/admin/documents/import', 'POST', { documents: [newDraft, { ...newDraft, sourceUrl: 'file:///test' }] })
+    assert.equal(badBatch.status, 400)
+    assert.match((await badBatch.json()).error.message, /第 2 条/)
+    const imported = await request('/admin/documents/import', 'POST', { documents: [
+      newDraft, { ...newDraft, sourceUrl: 'https://EXAMPLE.com:443/imported' },
+    ] })
+    assert.deepEqual(await imported.json(), { created: 1, skipped: 1 })
+    const repeated = await request('/admin/documents/import', 'POST', { documents: [newDraft] })
+    assert.deepEqual(await repeated.json(), { created: 0, skipped: 1 })
+    const importedRow = await pool.query('SELECT status FROM documents WHERE source_url = $1', [newDraft.sourceUrl])
+    assert.deepEqual(importedRow.rows, [{ status: 'draft' }])
+    const importAudit = await pool.query(`SELECT a.action FROM document_audit a JOIN documents d ON a.document_id = d.id WHERE d.source_url = $1`, [newDraft.sourceUrl])
+    assert.deepEqual(importAudit.rows, [{ action: 'create' }])
     const rotated = await start(createApp({ ...options, adminPassword: randomUUID() }))
     try {
       const priorSession = await fetch(`${rotated.url}/admin/session`, { headers: { cookie } })

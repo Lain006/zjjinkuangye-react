@@ -45,3 +45,5 @@ erDiagram
 ```
 
 See the SQL migration for the exact schema. Maintenance uses an opaque session cookie. Authentication values are supplied at runtime. Updates and audit events use database transactions. A duplicate canonical URL is rejected with HTTP 409.
+
+Authenticated batch import uses `POST /api/v1/admin/documents/import` with `{documents: DocumentInput[]}`. It validates all 1–100 items before writing, inserts drafts and audit events in one transaction, and returns `{created,skipped}`. Duplicate source URLs are skipped.

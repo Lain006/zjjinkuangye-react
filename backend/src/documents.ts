@@ -154,6 +154,20 @@ export async function createDocument(pool: Pool, input: DocumentInput) {
   })
 }
 
+export async function importDocuments(pool: Pool, inputs: DocumentInput[]) {
+  return transaction(pool, async (client) => {
+    let created = 0
+    for (const input of inputs) {
+      const draft = completeDocument(input, randomUUID(), 'draft', null)
+      const inserted = await insertDocument(client, draft, true)
+      if (!inserted) continue
+      await audit(client, 'create', null, inserted)
+      created += 1
+    }
+    return { created, skipped: inputs.length - created }
+  })
+}
+
 export async function reviseDocument(
   pool: Pool,
   id: string,

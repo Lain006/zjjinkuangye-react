@@ -109,3 +109,37 @@ test('窄屏筛选、键盘关闭、可访问性和视口宽度', async ({ page 
   await expect(dialog).toBeHidden()
   await expect(filters).toBeFocused()
 })
+
+test('管理员从 Excel、CSV 与旧版 JSON 导入待核验草稿', async ({ page }) => {
+  const api = '/api/v1/admin'
+  const token = randomUUID().slice(0, 8)
+  const source = 'https://example.com/import/' + token
+  const fixture = {
+    title: '批量导入验证 ' + token, sourceName: '来源验证', sourceUrl: source,
+    sourceType: '政策文件', region: '国际', category: '跨境资金', collectDate: '2026-11-23',
+  }
+  const login = await page.request.post(api + '/session', { headers: { Origin: base }, data: { password: process.env.PW_TEST_ADMIN_PASSWORD } })
+  expect(login.ok()).toBeTruthy()
+  await page.goto('/admin')
+  const { utils, write } = await import('xlsx')
+  const workbook = utils.book_new()
+  utils.book_append_sheet(workbook, utils.json_to_sheet([fixture]), '合规数据')
+  const files = [
+    { name: '资料.xlsx', mimeType: 'application/octet-stream', buffer: write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer },
+    { name: '资料.xls', mimeType: 'application/octet-stream', buffer: write(workbook, { type: 'buffer', bookType: 'biff8' }) as Buffer },
+    { name: '资料.csv', mimeType: 'text/csv', buffer: Buffer.from('\uFEFF' + utils.sheet_to_csv(workbook.Sheets['合规数据'])) },
+    { name: '资料.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify([{ ...fixture, id: 33, status: 'published' }])) },
+  ]
+  for (const [index, file] of files.entries()) {
+    await page.getByRole('button', { name: '批量导入', exact: true }).click()
+    await page.getByLabel('选择导入文件').setInputFiles(file)
+    await expect(page.getByText(fixture.title + ' · 国际')).toBeVisible()
+    await page.getByRole('button', { name: '导入为草稿' }).click()
+    await expect(page.getByRole('status').filter({ hasText: index === 0 ? '已导入 1 条草稿' : '跳过 1 条重复来源' })).toBeVisible()
+  }
+  const list = await page.request.get(api + '/documents?q=' + token)
+  const {items} = await list.json()
+  expect(items.map((item: {status: string}) => item.status)).toEqual(['draft'])
+  const publicList = await (await page.request.get('/api/v1/documents?q=' + token)).json()
+  expect(publicList.total).toBe(0)
+})

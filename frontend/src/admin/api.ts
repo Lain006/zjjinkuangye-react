@@ -169,6 +169,10 @@ export const adminApi = {
     return request(`/documents?${params}`, decodeDocumentPage, { signal })
   },
   document: (id: string, signal: AbortSignal) => request(`/documents/${encodeURIComponent(id)}`, decodeDocument, { signal }),
+  importDrafts: (documents: DraftInput[]) => request('/documents/import', (data) => {
+    const result = record(data)
+    return { created: count(result.created), skipped: count(result.skipped) }
+  }, { method: 'POST', body: JSON.stringify({ documents }) }),
   create: (draft: DraftInput) => request('/documents', decodeDocument, {
     method: 'POST',
     body: JSON.stringify(draft),
