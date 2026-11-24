@@ -7,10 +7,13 @@ export type DraftInput = {
   sourceType: string
   region: string
   category: string
+  topic?: string
   publishDate: string | null
   collectedAt?: string
   summary: string
   excerpt: string
+  evidenceLocator?: string
+  evidenceSourceUrl?: string | null
   analysis: string
 }
 
@@ -18,11 +21,14 @@ export type AdminDocument = DraftInput & {
   id: string
   collectedAt: string
   status: DocumentStatus
+  topicConfirmed: boolean
 }
 
 export type Source = { id: string; label: string; url: string }
-export type AuditEntry = { id: string; action: string; documentId: string; createdAt: string }
-export type DocumentPage = { items: AdminDocument[]; page: number; pageSize: number; total: number }
+export type AuditEntry = { id: string; action: string; documentId: string; documentTitle: string; createdAt: string }
+type Paged<T> = { items: T[]; page: number; pageSize: number; total: number }
+export type DocumentPage = Paged<AdminDocument>
+export type AuditPage = Paged<AuditEntry>
 
 export function changedDraftFields(initial: DraftInput, draft: DraftInput): Partial<DraftInput> {
   const keys = Object.keys(draft) as (keyof DraftInput)[]
@@ -78,10 +84,13 @@ function decodeDraft(value: unknown): DraftInput {
     sourceType: field(item.sourceType),
     region: field(item.region),
     category: field(item.category),
+    topic: typeof item.topic === 'string' ? item.topic : undefined,
     publishDate: item.publishDate === null ? null : field(item.publishDate),
     collectedAt: typeof item.collectedAt === 'string' ? item.collectedAt : undefined,
     summary: field(item.summary),
     excerpt: field(item.excerpt),
+    evidenceLocator: typeof item.evidenceLocator === 'string' ? item.evidenceLocator : '',
+    evidenceSourceUrl: typeof item.evidenceSourceUrl === 'string' ? item.evidenceSourceUrl : null,
     analysis: field(item.analysis),
   }
 }
@@ -95,6 +104,7 @@ function decodeDocument(value: unknown): AdminDocument {
     id: field(item.id),
     collectedAt: field(item.collectedAt),
     status,
+    topicConfirmed: item.topicConfirmed === true,
   }
 }
 
@@ -109,14 +119,15 @@ function decodeAudit(value: unknown): AuditEntry {
     id: field(item.id),
     action: field(item.action),
     documentId: field(item.documentId),
+    documentTitle: field(item.documentTitle),
     createdAt: field(item.createdAt),
   }
 }
 
-function decodeDocumentPage(value: unknown): DocumentPage {
+function decodePage<T>(value: unknown, decode: (item: unknown) => T): Paged<T> {
   const page = record(value)
   return {
-    items: unpackItems(page, decodeDocument),
+    items: unpackItems(page, decode),
     page: count(page.page),
     pageSize: count(page.pageSize),
     total: count(page.total),
@@ -156,6 +167,7 @@ export const adminApi = {
     body: JSON.stringify({ password }),
   }),
   signOut: () => request('/session', () => undefined, { method: 'DELETE' }),
+  topics: (signal: AbortSignal) => request('/topics', data => unpackItems(data, field), { signal }),
   sources: (signal: AbortSignal) => request('/sources', (data) => unpackItems(data, decodeSource), { signal }),
   intake: (sourceId: string, signal: AbortSignal) => request('/intake', decodeDraft, {
     method: 'POST',
@@ -163,10 +175,10 @@ export const adminApi = {
     signal,
   }),
   documents: (page: number, query: string, status: DocumentStatus | '', signal: AbortSignal) => {
-    const params = new URLSearchParams({ page: String(page) })
+    const params = new URLSearchParams({ page: String(page), pageSize: '10' })
     if (query) params.set('q', query)
     if (status) params.set('status', status)
-    return request(`/documents?${params}`, decodeDocumentPage, { signal })
+    return request(`/documents?${params}`, data => decodePage(data, decodeDocument), { signal })
   },
   document: (id: string, signal: AbortSignal) => request(`/documents/${encodeURIComponent(id)}`, decodeDocument, { signal }),
   importDrafts: (documents: DraftInput[]) => request('/documents/import', (data) => {
@@ -186,7 +198,15 @@ export const adminApi = {
     decodeDocument,
     { method: 'POST' },
   ),
-  audit: (signal: AbortSignal) => request('/audit', (data) => unpackItems(data, decodeAudit), { signal }),
+  audit: (page: number, signal: AbortSignal) => request(`/audit?page=${page}&pageSize=10`, data => decodePage(data, decodeAudit), { signal }),
+}
+
+export function evidenceGaps(draft: DraftInput, topicConfirmed = Boolean(draft.topic)) {
+  return [
+    !topicConfirmed && '一级主题',
+    !draft.analysis.trim() && '课程分析',
+    (!draft.evidenceLocator?.trim() || (!draft.excerpt.trim() && !draft.summary.trim())) && '摘录或摘要及出处',
+  ].filter(Boolean)
 }
 
 export function explainError(error: unknown): string {

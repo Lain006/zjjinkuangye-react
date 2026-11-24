@@ -18,11 +18,14 @@ function toDraft(value: unknown, index: number): DraftInput {
   const draft = {
     title: field('title', '标题'), sourceName: field('sourceName', '来源名称'),
     sourceUrl: field('sourceUrl', '来源链接'), sourceType: field('sourceType', '来源类型'),
-    category: field('category', '主题'), region: field('region', '地区', 'country', '国家'),
+    category: field('category', '主题') || field('topic', '一级主题'),
+    topic: field('topic', '一级主题') || undefined, region: field('region', '地区', 'country', '国家'),
     publishDate: field('publishDate', '发布日期') || null,
     collectedAt: field('collectedAt', 'collectDate', '采集日期') || undefined,
     summary: field('summary', '摘要'), excerpt: field('excerpt', '摘录', '引文'),
-    analysis: field('analysis', '整理说明', '分析'),
+    analysis: field('analysis', '课程分析', '整理说明', '分析'),
+    evidenceLocator: field('evidenceLocator', '出处位置'),
+    evidenceSourceUrl: field('evidenceSourceUrl', '摘录出处链接') || undefined,
   }
   if (![draft.title, draft.sourceName, draft.sourceUrl, draft.sourceType, draft.category, draft.region].every(Boolean)) {
     throw new Error(`第 ${index + 1} 条缺少标题、来源名称、来源链接、来源类型、主题或地区。`)

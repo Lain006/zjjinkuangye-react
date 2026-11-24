@@ -18,4 +18,4 @@ COPY --from=build --chown=node:node /app/frontend/package.json frontend/package.
 COPY --from=build --chown=node:node /app/frontend/dist frontend/dist
 USER node
 EXPOSE 3001
-CMD ["sh", "-c", "npm run migrate && npm run seed && exec node backend/dist/index.js"]
+CMD ["sh", "-c", "npm run migrate && npm run seed && npm run evidence:backfill -w backend -- --all --apply --summary && exec node backend/dist/index.js"]

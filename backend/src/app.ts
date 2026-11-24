@@ -6,9 +6,10 @@ import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'exp
 import type { Pool } from 'pg'
 import { z } from 'zod'
 import { createRateLimit, sessions } from './auth.ts'
-import { createDocument, getAnalytics, getDocument, importDocuments, listAudit, listDocuments, reviseDocument } from './documents.ts'
+import { IncompletePublication, createDocument, getAnalytics, getDocument, importDocuments, listAudit, listDocuments, reviseDocument } from './documents.ts'
 import { collectDraft, sources } from './intake.ts'
-import { adminListQuery, analyticsQuery, documentId, documentInput, documentPatch, listQuery } from './model.ts'
+import { adminListQuery, auditQuery, analyticsQuery, documentId, documentInput, documentPatch, listQuery } from './model.ts'
+import { resolveTopic, topicOptions } from './topics.ts'
 
 type AppOptions = {
   pool: Pool
@@ -131,6 +132,7 @@ export function createApp(options: AppOptions) {
   }
   admin.use(requireAdmin)
 
+  admin.get('/topics', (_request, response) => response.json({ items: topicOptions }))
   admin.get('/sources', (_request, response) => {
     response.json({ items: sources.map(({ id, label, url }) => ({ id, label, url })) })
   })
@@ -143,7 +145,8 @@ export function createApp(options: AppOptions) {
       throw new ApiError(429, 'TOO_MANY_ATTEMPTS', '采集请求过于频繁，请稍后重试。')
     }
     try {
-      response.json(await collectDraft(source, options.fetchArticle))
+      const draft = await collectDraft(source, options.fetchArticle)
+      response.json({ ...draft, topic: resolveTopic(draft.category, null) })
     } catch {
       throw new ApiError(502, 'SOURCE_UNAVAILABLE', '来源网站暂时无法采集。可稍后重试，或核对原文后手动录入。')
     }
@@ -186,7 +189,10 @@ export function createApp(options: AppOptions) {
       response.json(document)
     })
   }
-  admin.get('/audit', async (_request, response) => response.json(await listAudit(pool)))
+  admin.get('/audit', async (request, response) => {
+    const { page, pageSize } = auditQuery.parse(request.query)
+    response.json(await listAudit(pool, page, pageSize))
+  })
 
   api.use('/admin', admin)
   app.use('/api/v1', api)
@@ -212,6 +218,7 @@ function reply(response: Response, error: ApiError) {
 
 const apiErrors: ErrorRequestHandler = (error: unknown, _request, response, next) => {
   if (response.headersSent) return next(error)
+  if (error instanceof IncompletePublication) return reply(response, new ApiError(409, 'INCOMPLETE_PUBLICATION', error.message))
   if (error instanceof ApiError) return reply(response, error)
   if (error instanceof z.ZodError) {
     const field = error.issues[0]?.path.join('.')

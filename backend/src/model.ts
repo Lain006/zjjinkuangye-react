@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { topicOptions } from './topics.ts'
 
 export const statuses = ['draft', 'published', 'archived'] as const
 export type DocumentStatus = (typeof statuses)[number]
@@ -22,10 +23,13 @@ export const documentInput = z.strictObject({
   sourceType: shortText(80),
   region: shortText(80),
   category: shortText(80),
+  topic: z.enum(topicOptions).nullable().optional(),
   publishDate: z.iso.date().nullable().optional(),
   collectedAt: collectedAt.optional(),
   summary: optionalText(1600),
   excerpt: optionalText(6000),
+  evidenceLocator: optionalText(300),
+  evidenceSourceUrl: httpsUrl.nullable().optional(),
   analysis: optionalText(6000),
 })
 
@@ -44,23 +48,26 @@ const filters = z.strictObject({
   q: z.string().trim().max(160).refine(noNullBytes).optional(),
   region: shortText(80).optional(),
   category: shortText(80).optional(),
+  topic: z.enum(topicOptions).optional(),
   sourceType: shortText(80).optional(),
   dateFrom: z.iso.date().optional(),
   dateTo: z.iso.date().optional(),
 })
 const page = z.string().regex(/^[1-9][0-9]{0,5}$/).transform(Number).optional()
+const pageSize = z.string().regex(/^(?:[1-9]|[1-4][0-9]|50)$/).transform(Number).optional()
+export const auditQuery = z.strictObject({ page, pageSize })
 const validRange = (value: { dateFrom?: string; dateTo?: string }) => (
   !value.dateFrom || !value.dateTo || value.dateFrom <= value.dateTo
 )
 const rangeMessage = '起始日期应早于或等于结束日期'
 
 export const analyticsQuery = filters.refine(validRange, rangeMessage)
-export const listQuery = filters.extend({ page }).refine(validRange, rangeMessage)
-export const adminListQuery = filters.extend({ page, status: z.enum(statuses).optional() })
+export const listQuery = filters.extend({ page, pageSize }).refine(validRange, rangeMessage)
+export const adminListQuery = filters.extend({ page, pageSize, status: z.enum(statuses).optional() })
   .refine(validRange, rangeMessage)
 
 export type Filters = z.infer<typeof filters>
-export type ListFilters = Filters & { page?: number }
+export type ListFilters = Filters & { page?: number; pageSize?: number }
 export type DocumentInput = z.infer<typeof documentInput>
 export type Document = Required<DocumentInput> & {
   id: string
@@ -83,6 +90,9 @@ export function completeDocument(
     collectedAt: input.collectedAt ?? new Date().toISOString(),
     summary: input.summary ?? '',
     excerpt: input.excerpt ?? '',
+    evidenceLocator: input.evidenceLocator ?? '',
+    evidenceSourceUrl: input.evidenceSourceUrl ?? null,
+    topic: input.topic ?? null,
     analysis: input.analysis ?? '',
   }
 }

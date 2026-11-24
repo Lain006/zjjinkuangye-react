@@ -77,8 +77,9 @@ export async function collectDraft(source: Source, fetchArticle: typeof fetch = 
   const validatedDate = z.iso.date().safeParse(date)
   if (!title || !validatedDate.success) throw new Error('Official article metadata could not be identified')
 
-  const paragraph = $('.article-content p').map((_, el) => normalize($(el).text())).get()
-    .find((text) => text.length >= 25) ?? ''
+  const paragraphs = $('.article-content p').map((_, el) => normalize($(el).text())).get().filter(Boolean)
+  const paragraphIndex = paragraphs.findIndex(text => text.length >= 25)
+  const paragraph = paragraphs[paragraphIndex] ?? ''
   const characters = Array.from(paragraph)
   const excerpt = characters.length > 72 ? `${characters.slice(0, 72).join('')}…` : paragraph
 
@@ -93,6 +94,7 @@ export async function collectDraft(source: Source, fetchArticle: typeof fetch = 
     collectedAt: new Date().toISOString(),
     summary: '',
     excerpt,
+    evidenceLocator: excerpt ? `原文正文第 ${paragraphIndex + 1} 段` : '',
     analysis: '',
   }
 }

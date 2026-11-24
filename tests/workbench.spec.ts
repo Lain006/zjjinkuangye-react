@@ -35,6 +35,8 @@ test('测试资料保存、发布、独立会话可查与归档', async ({ page,
     region: '三亚·海南',
     category: '跨境资金',
     summary: '仅用于验证开发环境写入及公开检索。',
+    evidenceLocator: '测试原文第1段',
+    analysis: '验证文献发布所需的课程分析字段。',
     publishDate: '2026-07-27',
   }
   expect((await visitor.post(admin + '/documents', { headers: writes, data: input })).status()).toBe(401)
@@ -47,10 +49,16 @@ test('测试资料保存、发布、独立会话可查与归档', async ({ page,
 
   try {
     expect((await visitor.get('/api/v1/documents/' + id)).status()).toBe(404)
+    const openAnalytics = await page.context().newPage()
+    await openAnalytics.goto('/analytics?q=' + encodeURIComponent(title))
+    await expect(openAnalytics.getByText('当前范围暂无数据')).toBeVisible()
     await page.goto('/admin')
     await page.getByRole('button', { name: '发布《' + title + '》' }).click()
     await page.getByRole('button', { name: '确认发布' }).click()
     await expect.poll(async () => (await visitor.get('/api/v1/documents/' + id)).status()).toBe(200)
+    await expect(openAnalytics.getByRole('heading', { name: '主题分布' })).toBeVisible()
+    await expect(openAnalytics.locator('.theme-legend')).toContainText('跨境资金与金融合规')
+    await openAnalytics.close()
 
     const clean = await browser.newContext({ baseURL: base })
     try {
@@ -59,9 +67,10 @@ test('测试资料保存、发布、独立会话可查与归档', async ({ page,
       await expect(anonymous.getByRole('heading', { name: title })).toBeVisible()
       await expect(anonymous.getByRole('link', { name: '打开原始出处' })).toHaveAttribute('href', input.sourceUrl)
       await anonymous.goto('/analytics')
-      const drilldown = anonymous.getByRole('list', { name: '各主题文献数量与占比' }).getByRole('link', { name: /^跨境资金\s+\d+\s*条/ })
-      await drilldown.click()
-      await expect(anonymous).toHaveURL(/\/documents\?category=/)
+      const topic = '跨境资金与金融合规'
+      await anonymous.getByRole('list', { name: '各主题文献数量与占比' }).getByRole('button', { name: new RegExp('^' + topic) }).click()
+      await anonymous.getByRole('link', { name: `查看这组文献（${topic}）` }).click()
+      await expect(anonymous).toHaveURL(/\/documents\?topic=/)
       const data = await (await visitor.get('/api/v1/documents?q=' + encodeURIComponent(title))).json()
       expect(data.items.map((item: {id: string}) => item.id)).toEqual([id])
     } finally {

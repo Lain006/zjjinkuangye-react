@@ -4,6 +4,7 @@ import { once } from 'node:events'
 import type { Server } from 'node:http'
 import test from 'node:test'
 import { createApp } from '../src/app.ts'
+import { backfillEvidence } from '../src/documents.ts'
 import { createPool } from '../src/db.ts'
 import { sources } from '../src/intake.ts'
 import { migrate } from '../src/migrate.ts'
@@ -41,7 +42,7 @@ test('PostgreSQL-backed publication, collection, visibility, audit and session l
 
   try {
     await controlPool.query(`CREATE SCHEMA ${schema}`)
-    assert.deepEqual(await migrate(pool), ['001_initial.sql'])
+    assert.deepEqual(await migrate(pool), ['001_initial.sql', '002_document_editorial.sql', '003_evidence_source_url.sql'])
     assert.deepEqual(await migrate(pool), [])
     const seeds = [{ ...sample, legacyId: 1, status: 'published' },
       { ...sample, sourceUrl: 'https://example.com/legacy', legacyId: 2 }]
@@ -72,6 +73,8 @@ test('PostgreSQL-backed publication, collection, visibility, audit and session l
     assert.deepEqual(filtered.facets.regions, [{ label: '海南自贸港', count: 1 }])
     assert.equal((await request('/documents/legacy-2')).status, 404)
     assert.equal((await request('/documents?page=-1')).status, 400)
+    assert.equal((await request('/documents?pageSize=51')).status, 400)
+    assert.equal((await (await request('/documents')).json()).pageSize, 20)
     assert.equal((await request('/admin/documents')).status, 401)
     assert.equal((await request('/admin/session', 'POST', { password: credentials }, { origin: 'https://unrelated.invalid' })).status, 403)
     const login = await request('/admin/session', 'POST', { password: credentials })
@@ -96,7 +99,12 @@ test('PostgreSQL-backed publication, collection, visibility, audit and session l
     const source = new URL(document.sourceUrl)
     const alternativeUrl = source.href.replace(source.host, source.hostname.toUpperCase() + ':443')
     assert.equal((await request('/admin/documents', 'POST', { ...sample, sourceUrl: alternativeUrl })).status, 409)
-    assert.equal((await request(`/admin/documents/${document.id}`, 'PATCH', { summary: '已核对的测试摘要' })).status, 200)
+    const incomplete = await request(`/admin/documents/${document.id}/publish`, 'POST')
+    assert.equal(incomplete.status, 409)
+    assert.equal((await incomplete.json()).error.code, 'INCOMPLETE_PUBLICATION')
+    assert.equal((await request(`/admin/documents/${document.id}`, 'PATCH', {
+      summary: '已核对的测试摘要', analysis: '课程证据说明', evidenceLocator: '原文正文第1段',
+    })).status, 200)
     const publish = await request(`/admin/documents/${document.id}/publish`, 'POST')
     assert.equal(publish.status, 200)
     assert.equal((await publish.json()).status, 'published')
@@ -113,6 +121,12 @@ test('PostgreSQL-backed publication, collection, visibility, audit and session l
     assert.equal(analytics.total, 2)
     assert.ok(analytics.latestCollectedAt)
     assert.deepEqual(analytics.months, [{ label: '2026-07', count: 2 }])
+    const primary = '跨境资金与金融合规'
+    assert.deepEqual(analytics.topics, [{ label: primary, count: 2 }])
+    const down = await (await request(`/documents?topic=${encodeURIComponent(primary)}&pageSize=1&page=2`)).json()
+    assert.equal(down.total, analytics.total)
+    assert.equal(down.items[0].category, '资金')
+    assert.equal(down.items[0].topic, primary)
 
     // A failed audit must roll the associated document transition back as well.
     await pool.query(`ALTER TABLE document_audit ADD CONSTRAINT test_reject_archive CHECK (action <> 'archive')`)
@@ -137,6 +151,43 @@ test('PostgreSQL-backed publication, collection, visibility, audit and session l
     assert.deepEqual(importedRow.rows, [{ status: 'draft' }])
     const importAudit = await pool.query(`SELECT a.action FROM document_audit a JOIN documents d ON a.document_id = d.id WHERE d.source_url = $1`, [newDraft.sourceUrl])
     assert.deepEqual(importAudit.rows, [{ action: 'create' }])
+    const reviewed = [{ id: 'legacy-1', sourceUrl: sample.sourceUrl, summary: '可回查原文摘要',
+      excerpt: '经核验的测试摘录', analysis: '来源支持范围', evidenceLocator: '第1段' }]
+    const preview = await backfillEvidence(pool, reviewed, false)
+    assert.equal(preview[0].fields.length, 4)
+    assert.equal((await (await request('/documents/legacy-1')).json()).excerpt, '')
+    assert.equal((await backfillEvidence(pool, reviewed, true))[0].fields.length, 4)
+    assert.deepEqual((await backfillEvidence(pool, reviewed, true))[0].fields, [])
+    assert.equal((await (await request('/documents/legacy-1')).json()).excerpt, reviewed[0].excerpt)
+
+    const draftReview = { ...reviewed[0], id: 'legacy-2', sourceUrl: 'https://example.com/legacy',
+      evidenceSourceUrl: 'https://example.com/primary-source' }
+    await backfillEvidence(pool, [draftReview], true, true)
+    assert.equal((await request('/documents/legacy-2')).status, 404)
+    const completedDraft = await (await request('/admin/documents/legacy-2')).json()
+    assert.equal(completedDraft.status, 'draft')
+    assert.equal(completedDraft.evidenceSourceUrl, draftReview.evidenceSourceUrl)
+    assert.equal((await request('/admin/documents/legacy-2/publish', 'POST')).status, 200)
+    const visibleDraft = await (await request('/documents/legacy-2')).json()
+    assert.equal(visibleDraft.excerpt, draftReview.excerpt)
+    assert.equal(visibleDraft.analysis, draftReview.analysis)
+    assert.equal(visibleDraft.evidenceSourceUrl, draftReview.evidenceSourceUrl)
+    assert.equal((await request('/admin/documents/legacy-2/archive', 'POST')).status, 200)
+
+
+    const unknown = { ...newDraft, sourceUrl: 'https://example.com/unknown', category: '特别主题',
+      summary: '可回查摘要', analysis: '适用范围', evidenceLocator: '第三段' }
+    await request('/admin/documents/import', 'POST', { documents: [unknown] })
+    const { items: unknownRows } = await (await request(`/admin/documents?category=${encodeURIComponent(unknown.category)}`)).json()
+    const unknownId = unknownRows[0].id
+    assert.equal(unknownRows[0].topicConfirmed, false)
+    assert.equal((await request(`/admin/documents/${unknownId}/publish`, 'POST')).status, 409)
+    await request(`/admin/documents/${unknownId}`, 'PATCH', { topic: primary })
+    assert.equal((await request(`/admin/documents/${unknownId}/publish`, 'POST')).status, 200)
+    const newTopicResults = await (await request(`/documents?topic=${encodeURIComponent(primary)}`)).json()
+    assert.equal(newTopicResults.total, 2)
+    assert.equal(newTopicResults.items.find((item: Document) => item.id === unknownId).category, unknown.category)
+
     const rotated = await start(createApp({ ...options, adminPassword: randomUUID() }))
     try {
       const priorSession = await fetch(`${rotated.url}/admin/session`, { headers: { cookie } })

@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Check, ExternalLink, LoaderCircle, X } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
-import type { AdminDocument, DraftInput } from './api'
+import { evidenceGaps, type AdminDocument, type DraftInput } from './api'
 
 export const emptyDraft: DraftInput = {
   title: '',
@@ -13,6 +13,7 @@ export const emptyDraft: DraftInput = {
   publishDate: null,
   summary: '',
   excerpt: '',
+  evidenceLocator: '',
   analysis: '',
 }
 
@@ -76,6 +77,9 @@ export function AdminModal({ title, description, busy, wide, onClose, restoreFoc
 type EditorProps = {
   editor: EditorState
   busy: boolean
+  topics: string[]
+  topicsIssue: string
+  retryTopics: () => void
   error: string
   onSave: (draft: DraftInput) => void
   onClose: () => void
@@ -87,17 +91,17 @@ const requiredFields = [
   { key: 'sourceName', label: '来源名称', max: 120 },
   { key: 'sourceType', label: '来源类型', max: 80 },
   { key: 'region', label: '地区', max: 80 },
-  { key: 'category', label: '主题', max: 80 },
 ] as const
 
 const longFields = [
   { key: 'summary', label: '摘要', max: 1600, rows: 3 },
-  { key: 'excerpt', label: '引文', max: 6000, rows: 4 },
-  { key: 'analysis', label: '整理说明', max: 6000, rows: 4 },
+  { key: 'excerpt', label: '正文摘录', max: 6000, rows: 4 },
+  { key: 'analysis', label: '课程分析', max: 6000, rows: 4 },
 ] as const
 
-export default function DocumentEditor({ editor, busy, error, onSave, onClose, restoreFocus }: EditorProps) {
-  const [draft, setDraft] = useState(editor.initial)
+export default function DocumentEditor({ editor, busy, topics, topicsIssue, retryTopics, error, onSave, onClose, restoreFocus }: EditorProps) {
+  const [draft, setDraft] = useState(() => ({ ...editor.initial, topic: editor.document?.topicConfirmed === false ? undefined : editor.initial.topic }))
+  const gaps = evidenceGaps(draft)
   const [validation, setValidation] = useState('')
   const title = editor.mode === 'edit' ? '编辑资料' : editor.mode === 'intake' ? '核对采集草稿' : '手动录入资料'
   const isPublic = editor.document?.status === 'published'
@@ -112,6 +116,7 @@ export default function DocumentEditor({ editor, busy, error, onSave, onClose, r
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!draft.topic || !topics.includes(draft.topic)) return
     const missing = requiredFields.find((item) => draft[item.key].trim() === '')
     if (missing) {
       setValidation(`请填写${missing.label}。`)
@@ -129,11 +134,14 @@ export default function DocumentEditor({ editor, busy, error, onSave, onClose, r
       sourceUrl: draft.sourceUrl.trim(),
       sourceType: draft.sourceType.trim(),
       region: draft.region.trim(),
-      category: draft.category.trim(),
+      category: draft.category.trim() || draft.topic,
+      topic: draft.topic,
       publishDate: draft.publishDate,
       collectedAt: draft.collectedAt,
       summary: draft.summary.trim(),
       excerpt: draft.excerpt.trim(),
+      evidenceLocator: draft.evidenceLocator?.trim() ?? '',
+      evidenceSourceUrl: draft.evidenceSourceUrl?.trim() || null,
       analysis: draft.analysis.trim(),
     })
   }
@@ -157,6 +165,16 @@ export default function DocumentEditor({ editor, busy, error, onSave, onClose, r
                 />
               </label>
             ))}
+            <label className="admin-field">
+              <span>一级主题 <span aria-hidden="true">*</span></span>
+              <select className="admin-input" required value={draft.topic ?? ''} onChange={event => update('topic', event.target.value)}>
+                <option value="">选择主题</option>
+                {topics.map(topic => <option key={topic}>{topic}</option>)}
+              </select>
+              {draft.category && draft.category !== draft.topic && <small>原主题：{draft.category}</small>}
+            </label>
+            {!topics.length && !topicsIssue && <p role="status">正在读取主题。</p>}
+            {topicsIssue && <p className="admin-error">{topicsIssue} <button type="button" className="admin-clear" onClick={retryTopics}>重试</button></p>}
             <label className="admin-field admin-field--wide">
               <span>原文链接 <span aria-hidden="true">*</span></span>
               <input
@@ -199,13 +217,24 @@ export default function DocumentEditor({ editor, busy, error, onSave, onClose, r
                 />
               </label>
             ))}
+            <label className="admin-field admin-field--wide">
+              <span>出处位置（条款、页码或段落）</span>
+              <input className="admin-input" maxLength={300} value={draft.evidenceLocator ?? ''}
+                onChange={event => update('evidenceLocator', event.target.value)} />
+            </label>
+            <label className="admin-field admin-field--wide">
+              <span>摘录出处链接（与原文链接不同时填写）</span>
+              <input className="admin-input" type="url" maxLength={2048} value={draft.evidenceSourceUrl ?? ''}
+                onChange={event => update('evidenceSourceUrl', event.target.value)} />
+            </label>
+            {gaps.length > 0 && <p className="admin-field--wide">发布前待补：{gaps.join('、')}</p>}
           </fieldset>
         </div>
         <div className="admin-modal__footer">
           {(validation || error) && <p className="admin-error" role="alert">{validation || error}</p>}
           <div className="admin-modal__buttons">
             <button type="button" className="admin-button" onClick={onClose} disabled={busy}>取消</button>
-            <button className="admin-button admin-button--primary" type="submit" disabled={busy}>
+            <button className="admin-button admin-button--primary" type="submit" disabled={busy || !topics.length}>
               {busy ? <LoaderCircle size={16} className="admin-spin" aria-hidden="true" /> : <Check size={17} aria-hidden="true" />}
               {busy ? '正在保存' : editor.mode === 'edit' ? '保存修改' : '保存为草稿'}
             </button>

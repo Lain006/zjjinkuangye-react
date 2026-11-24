@@ -1,13 +1,14 @@
 import { displayDate, type DocumentList, type Tally } from './api'
 
-export const filterKeys = ['q', 'region', 'category', 'sourceType', 'dateFrom', 'dateTo'] as const
+export const filterKeys = ['q', 'region', 'topic', 'category', 'sourceType', 'dateFrom', 'dateTo'] as const
 export type FilterKey = (typeof filterKeys)[number]
 export type Facets = DocumentList['facets']
 
 export const filterLabels: Record<FilterKey, string> = {
   q: '关键词',
   region: '地区',
-  category: '主题',
+  topic: '主题',
+  category: '旧主题',
   sourceType: '来源类型',
   dateFrom: '发布日期起',
   dateTo: '发布日期止',

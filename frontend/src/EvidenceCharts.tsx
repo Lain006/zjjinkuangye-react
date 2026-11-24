@@ -1,3 +1,4 @@
+import { PageControls } from './Pagination'
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -19,22 +20,8 @@ function monthDocuments(params: URLSearchParams, month: string) {
 
 interface Month extends Tally { index: number; year: number; month: number }
 
-function monthRailTicks(min: number, max: number) {
-  const span = max - min
-  if (!span) return [{ index: min, label: String(Math.floor(min / 12)) }]
-  const unit = span < 12 ? Math.max(1, Math.ceil(span / 4)) : 12 * Math.max(1, Math.ceil(span / 60))
-  const boundaryLabel = (index: number) => span >= 12 ? String(Math.floor(index / 12)) : `${Math.floor(index / 12)}.${String(index % 12 + 1).padStart(2, '0')}`
-  const ticks = [{ index: min, label: boundaryLabel(min) }]
-  for (let index = Math.ceil(min / unit) * unit; index < max; index += unit) {
-    if (index - min < span * .15 || max - index < span * .15) continue
-    ticks.push({ index, label: unit >= 12 ? String(Math.floor(index / 12)) : `${index % 12 + 1}月` })
-  }
-  ticks.push({ index: max, label: boundaryLabel(max) })
-  return ticks
-}
-
-function MonthRail({ items, min, max, selected, onSelect, year }: {
-  items: Month[]; min: number; max: number; selected: string; onSelect: (label: string) => void; year?: number
+function MonthRail({ items, selected, onSelect, year }: {
+  items: Month[]; selected: string; onSelect: (label: string) => void; year: number
 }) {
   const rail = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(400)
@@ -48,7 +35,7 @@ function MonthRail({ items, min, max, selected, onSelect, year }: {
     return () => observer.disconnect()
   }, [])
 
-  const position = (index: number) => max === min ? .5 : (index - min) / (max - min)
+  const position = (index: number) => (index - year * 12) / 11
   // Stack close marks vertically without moving their true dates on the horizontal scale.
   const laneEnds: number[] = []
   const marks = items.map(item => {
@@ -60,11 +47,10 @@ function MonthRail({ items, min, max, selected, onSelect, year }: {
     return { ...item, ratio, lane }
   })
   const active = marks.find(item => item.label === selected)
-  const ticks = year ? [1, 4, 7, 10, 12].map(m => ({ index: min + m - 1, label: `${m}月` })) : monthRailTicks(min, max)
+  const ticks = [1, 4, 7, 10, 12].map(m => ({ index: year * 12 + m - 1, label: `${m}月` }))
 
   return <div className="month-row">
-    {year && <strong className="year-label">{year}</strong>}
-    <div className="month-track" ref={rail} role="group" aria-label={year ? `${year}年发布月份` : '发布月份时间轨'}
+    <div className="month-track" ref={rail} role="group" aria-label={`${year}年发布月份`}
       style={{ height: 57 + laneEnds.length * 34 }}>
       <div className="rail-baseline" aria-hidden />
       {ticks.map(tick => <span className="rail-tick" key={tick.index} aria-hidden style={{ left: `${position(tick.index) * 100}%` }}>{tick.label}</span>)}
@@ -94,27 +80,24 @@ export function MonthTimeline({ items, total, params }: { items: Tally[]; total:
   }).sort((a, b) => a.index - b.index)
   const [selection, setSelection] = useState('')
   const active = dated.find(item => item.label === selection) ?? dated[dated.length - 1]
-  const groups = new Map<number, Month[]>()
-  for (const item of dated) {
-    if (!groups.has(item.year)) groups.set(item.year, [])
-    groups.get(item.year)!.push(item)
-  }
+  const years = [...new Set(dated.map(item => item.year))].reverse()
+  const yearMonths = dated.filter(item => item.year === active?.year)
   const missing = total - dated.reduce((sum, item) => sum + item.count, 0)
   return <section className="panel analytics-panel analytics-trend" aria-labelledby={id}>
-    <div className="analytics-panel-top"><div><h2 id={id}>文献发布时间轨</h2><p>选中月份，查看当月发布的文献。</p></div></div>
+    <div className="analytics-panel-top">
+      <div><h2 id={id}>文献发布时间轨</h2><p>选中月份，查看当月发布的文献。</p></div>
+      {active && <select className="chart-year" aria-label="选择发布年份" value={active.year} onChange={event => {
+        const year = Number(event.target.value)
+        const month = dated.filter(item => item.year === year).at(-1)
+        if (month) setSelection(month.label)
+      }}>{years.map(year => <option key={year} value={year}>{year} 年</option>)}</select>}
+    </div>
     {active ? <>
       <div className="time-board">
-        <div className="wide-rail"><MonthRail items={dated} min={dated[0].index} max={dated[dated.length - 1].index}
-          selected={active.label} onSelect={setSelection} /></div>
-        <div className="year-rails">{Array.from(groups, ([year, values]) => <MonthRail key={year} year={year} items={values}
-          min={year * 12} max={year * 12 + 11} selected={active.label} onSelect={setSelection} />)}</div>
+        <MonthRail year={active.year} items={yearMonths} selected={active.label} onSelect={setSelection} />
       </div>
       <div className="chart-readout month-readout"><span><strong>{active.label}</strong> · {active.count} 条</span>
         <Link data-carry-link="" className="text-link" to={monthDocuments(params, active.label)} aria-label={`查看当月文献（${active.label}）`}>查看当月文献 <ArrowUpRight aria-hidden size={15} /></Link></div>
-      <details className="chart-transcript"><summary>查看月份与文献数量</summary>
-        <table><thead><tr><th scope="col">月份</th><th scope="col">文献数量</th></tr></thead>
-          <tbody>{dated.map(item => <tr key={item.label}><td><Link data-carry-link="" className="text-link" to={monthDocuments(params, item.label)}>{item.label}</Link></td><td>{item.count}</td></tr>)}</tbody></table>
-      </details>
     </> : <p className="muted chart-empty">暂无按月分布的数据。</p>}
     {missing > 0 && <p className="missing-dates">{missing} 条文献缺少发布日期。</p>}
   </section>
@@ -129,14 +112,18 @@ function grainUnit(max: number) {
 export function RegionSpecimens({ items, params }: { items: Tally[]; params: URLSearchParams }) {
   const id = useId()
   const [selected, setSelected] = useState('')
-  const current = items.find(item => item.label === selected) ?? items[0]
+  const [page, setPage] = useState(1)
+  const pageSize = 6
+  const activePage = Math.min(page, Math.max(1, Math.ceil(items.length / pageSize)))
+  const visible = items.slice((activePage - 1) * pageSize, activePage * pageSize)
+  const current = visible.find(item => item.label === selected) ?? visible[0]
   const unit = grainUnit(items.reduce((max, item) => Math.max(max, item.count), 0))
   return <section className="panel analytics-panel analytics-regions" aria-labelledby={id}>
     <div className="analytics-panel-top"><div><h2 id={id}>地区标本点阵</h2>
       <p>每枚完整矿粒代表 {unit} 条文献。{unit > 1 && '末枚按余量着色。'}</p></div></div>
     {current ? <>
       <ul className="specimens" aria-label="按地区汇总的文献">
-        {items.map(({ label, count }) => <li key={label}>
+        {visible.map(({ label, count }) => <li key={label}>
           <button type="button" className="specimen" onClick={() => setSelected(label)} aria-label={`选择地区 ${label} ${count} 条`} aria-pressed={current.label === label}>
             <span className="specimen-heading"><strong>{label}</strong><span>{count} 条</span></span>
             <span className="ore-dots" aria-hidden>{Array.from({ length: Math.ceil(count / unit) }, (_, i) => {
@@ -146,6 +133,7 @@ export function RegionSpecimens({ items, params }: { items: Tally[]; params: URL
           </button>
         </li>)}
       </ul>
+      <PageControls data={{ page: activePage, pageSize, total: items.length }} label="地区分页" onPage={setPage} />
       <div className="chart-readout region-readout"><span><strong>{current.label}</strong> · {current.count} 条</span>
         <Link data-carry-link="" className="text-link" to={withQuery('/documents', changeFilter(params, 'region', current.label))}
           aria-label={`查看地区文献（${current.label}）`}>查看地区文献 <ArrowUpRight aria-hidden size={15} /></Link></div>

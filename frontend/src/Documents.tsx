@@ -1,7 +1,8 @@
+import { lastPage, PageControls, PageJump } from './Pagination'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, FileText, Filter, FolderOpen, Search, X } from 'lucide-react'
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, ArrowUpRight, FileText, Filter, FolderOpen, Search, X } from 'lucide-react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { displayDate, publicSource, useApi, withQuery, type ComplianceDocument, type DocumentList } from './api'
 import { LoadingBlock, StateBlock } from './components'
 import { changeFilter, facetOptions, filterKeys, filterLabels, filterValue, readFilters, type Facets } from './filters'
@@ -9,7 +10,7 @@ import './library.css'
 
 const facetList = [
   ['region', 'regions'],
-  ['category', 'categories'],
+  ['topic', 'topics'],
   ['sourceType', 'sourceTypes'],
 ] as const
 
@@ -27,8 +28,10 @@ function DocumentFilters({ params, facets, onApply }: { params: URLSearchParams;
     }
 
     const next = new URLSearchParams()
-    const query = params.get('q')
-    if (query) next.set('q', query)
+    for (const key of ['q', 'category']) {
+      const value = params.get(key)
+      if (value) next.set(key, value)
+    }
     for (const key of filterKeys.slice(1)) {
       const value = String(fields.get(key) ?? '').trim()
       if (value) next.set(key, value)
@@ -111,31 +114,10 @@ function ActiveFilters({ params }: { params: URLSearchParams }) {
   )
 }
 
-function pageCount(data: DocumentList) {
-  return Math.max(1, Math.ceil(data.total / data.pageSize))
-}
-
-function Pagination({ data, params }: { data: DocumentList; params: URLSearchParams }) {
-  const pages = pageCount(data)
-  if (pages < 2 && data.page < 2) return null
-
-  function pageUrl(page: number) {
-    const query = new URLSearchParams(params)
-    if (page > 1) query.set('page', String(page))
-    return withQuery('/documents', query)
-  }
-
-  return (
-    <nav className="pagination" aria-label="文献分页">
-      {data.page > 1
-        ? <Link className="button button--outline" to={pageUrl(data.page - 1)}><ChevronLeft size={16} aria-hidden /> 上一页</Link>
-        : <span className="button button--disabled"><ChevronLeft size={16} aria-hidden /> 上一页</span>}
-      <span>第 {data.page} / {pages} 页</span>
-      {data.page < pages
-        ? <Link className="button button--outline" to={pageUrl(data.page + 1)}>下一页 <ChevronRight size={16} aria-hidden /></Link>
-        : <span className="button button--disabled">下一页 <ChevronRight size={16} aria-hidden /></span>}
-    </nav>
-  )
+function pageUrl(params: URLSearchParams, page: number) {
+  const query = new URLSearchParams(params)
+  if (page > 1) query.set('page', String(page))
+  return withQuery('/documents', query)
 }
 
 function OriginalSource({ doc, compact = false }: { doc: ComplianceDocument; compact?: boolean }) {
@@ -162,6 +144,7 @@ function Preview({ doc, from }: { doc: ComplianceDocument; from: string }) {
 }
 
 function DocumentResults({ data, params, from }: { data: DocumentList; params: URLSearchParams; from: string }) {
+  const navigate = useNavigate()
   const [selected, setSelected] = useState<string>()
   const active = data.items.find((doc) => doc.id === selected) ?? data.items[0]
   const preview = useRef<HTMLElement>(null)
@@ -216,7 +199,6 @@ function DocumentResults({ data, params, from }: { data: DocumentList; params: U
         <StateBlock title="没有找到文献" detail={params.size ? '试试缩短关键词，或清除筛选条件扩大搜索范围。' : '文献发布后会在这里显示。'}>
           {params.size > 0 && <Link className="button button--outline" to="/documents">清除筛选</Link>}
         </StateBlock>
-        <Pagination data={data} params={params} />
       </div>
     )
   }
@@ -224,24 +206,29 @@ function DocumentResults({ data, params, from }: { data: DocumentList; params: U
   return (
     <>
       <div className="library-results">
-        <div className="results-top" data-carry-destination><h2>检索结果</h2><span role="status">{data.total.toLocaleString('zh-CN')} 条文献</span></div>
+        <div className="results-top" data-carry-destination><h2 id="library-results-heading" tabIndex={-1}>检索结果</h2><span role="status">{data.total.toLocaleString('zh-CN')} 条文献</span>
+          <PageJump data={data} label="跳到文献页码" onPage={page => navigate(pageUrl(params, page))} />
+        </div>
         <ul className="result-list">
           {data.items.map((doc) => (
             <li className={`result-item${doc.id === active.id ? ' result-item--selected' : ''}`} key={doc.id}>
-              <h3><Link state={{ from }} to={`/documents/${encodeURIComponent(doc.id)}`}>{doc.title}</Link></h3>
-              <div className="result-source"><span>{doc.sourceName || '来源待补充'}</span>{doc.publishDate && <time dateTime={doc.publishDate}>{displayDate(doc.publishDate)}</time>}</div>
-              {doc.summary && <p>{doc.summary}</p>}
-              <div className="result-foot">
-                <span className="result-classification">{doc.sourceType && <span>{doc.sourceType}</span>}{doc.region && <span>{doc.region}</span>}</span>
+              <div className="result-title-row">
+                <h3><Link state={{ from }} to={`/documents/${encodeURIComponent(doc.id)}`}>{doc.title}</Link></h3>
                 <OriginalSource doc={doc} compact />
                 <button type="button" className="inline-button preview-action" aria-controls="document-preview" aria-pressed={doc.id === active.id} onClick={(event) => selectRecord(doc.id, event.currentTarget)}>
                   {doc.id === active.id ? '预览中' : '预览'} <ArrowRight size={15} aria-hidden />
                 </button>
               </div>
+              <div className="result-source">
+                <span>{doc.sourceName || '来源待补充'}</span>
+                {doc.publishDate && <time dateTime={doc.publishDate}>{displayDate(doc.publishDate)}</time>}
+                <span className="result-classification">{doc.sourceType && <span>{doc.sourceType}</span>}{doc.region && <span>{doc.region}</span>}</span>
+              </div>
+              {doc.summary && <p>{doc.summary}</p>}
             </li>
           ))}
         </ul>
-        <Pagination data={data} params={params} />
+        <PageControls data={data} label="文献分页" href={page => pageUrl(params, page)} />
       </div>
       <aside ref={preview} id="document-preview" className="library-preview panel" aria-label="文献预览">
         <h2 className="preview-heading"><FileText size={17} aria-hidden /> 来源核对</h2>
@@ -259,13 +246,24 @@ export function LibraryPage() {
   const searchInput = useRef<HTMLInputElement>(null)
   const submittedSearch = params.get('q') ?? ''
   const apiQuery = new URLSearchParams(params)
+  apiQuery.set('pageSize', '8')
   const page = query.get('page')
   if (page && /^[1-9]\d{0,5}$/.test(page)) apiQuery.set('page', page)
   const documents = useApi<DocumentList>(withQuery('/documents', apiQuery))
   const results = documents.status === 'ready' ? documents.data : null
-  const lastPage = results ? pageCount(results) : 1
-  const outOfBounds = Boolean(results && results.page > lastPage)
+  const finalPage = results ? lastPage(results) : 1
+  const outOfBounds = Boolean(results && results.page > finalPage)
   const facets = results?.facets
+  const lastLoadedPage = useRef<number | undefined>(undefined)
+  const visiblePage = outOfBounds ? undefined : results?.page
+
+  useEffect(() => {
+    if (!visiblePage) return
+    if (lastLoadedPage.current !== undefined && lastLoadedPage.current !== visiblePage) {
+      document.getElementById('library-results-heading')?.focus()
+    }
+    lastLoadedPage.current = visiblePage
+  }, [visiblePage])
 
   useEffect(() => {
     if (searchInput.current) searchInput.current.value = submittedSearch
@@ -274,10 +272,10 @@ export function LibraryPage() {
   useEffect(() => {
     if (!outOfBounds) return
     const corrected = new URLSearchParams(query)
-    if (lastPage === 1) corrected.delete('page')
-    else corrected.set('page', String(lastPage))
+    if (finalPage === 1) corrected.delete('page')
+    else corrected.set('page', String(finalPage))
     setQuery(corrected, { replace: true })
-  }, [lastPage, outOfBounds, query, setQuery])
+  }, [finalPage, outOfBounds, query, setQuery])
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -336,6 +334,14 @@ export function DocumentPage() {
   )
 }
 
+function EvidenceLocator({ doc }: { doc: ComplianceDocument }) {
+  if (!doc.evidenceLocator) return null
+  const url = doc.evidenceSourceUrl && publicSource(doc.evidenceSourceUrl)
+  return <p className="evidence-locator">出处位置：{url
+    ? <a className="text-link" href={url} target="_blank" rel="noopener noreferrer">{doc.evidenceLocator} <ArrowUpRight size={13} aria-hidden /></a>
+    : doc.evidenceLocator}</p>
+}
+
 function DocumentDetail({ doc }: { doc: ComplianceDocument }) {
   return (
     <article className="evidence-record">
@@ -351,18 +357,18 @@ function DocumentDetail({ doc }: { doc: ComplianceDocument }) {
       </header>
       <div className="record-columns">
         <div className="record-body">
-          {doc.summary && <section className="record-summary"><h2>资料摘要</h2><p>{doc.summary}</p></section>}
+          {doc.summary && <section className="record-summary"><h2>资料摘要</h2><p>{doc.summary}</p>{!doc.excerpt && <EvidenceLocator doc={doc} />}</section>}
           <section className="record-excerpt">
             <h2>正文摘录</h2>
-            {doc.excerpt ? <blockquote>{doc.excerpt}</blockquote> : <p className="muted">暂未整理正文摘录。</p>}
+            {doc.excerpt ? <><blockquote>{doc.excerpt}</blockquote><EvidenceLocator doc={doc} /></> : <p className="muted">暂未提供可核实的正文摘录。</p>}
           </section>
-          {doc.analysis && <section className="record-analysis"><h2>课程分析</h2><p>{doc.analysis}</p></section>}
+          <section className="record-analysis"><h2>课程分析</h2>{doc.analysis ? <p>{doc.analysis}</p> : <p className="muted">待补充课程分析。</p>}</section>
         </div>
         <aside className="record-catalog" aria-label="编目记录">
           <h2>编目记录</h2>
           <dl className="source-facts">
-            <div><dt>主题</dt><dd>{doc.category
-              ? <Link className="text-link" to={withQuery('/documents', new URLSearchParams({ category: doc.category }))}>{doc.category}</Link>
+            <div><dt>主题</dt><dd>{doc.topic
+              ? <Link className="text-link" to={withQuery('/documents', new URLSearchParams({ topic: doc.topic }))}>{doc.topic}</Link>
               : '未分类'}</dd></div>
             <div><dt>采集日期</dt><dd>{displayDate(doc.collectedAt)}</dd></div>
           </dl>

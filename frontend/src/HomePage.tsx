@@ -6,8 +6,8 @@ import { LoadingBlock, StateBlock } from './components'
 import MineralPlate from './MineralPlate'
 import './home.css'
 
-const featuredCategory = '跨境资金'
-const featuredUrl = withQuery('/documents', new URLSearchParams({ category: featuredCategory }))
+const featuredTopic = '跨境资金与金融合规'
+const featuredUrl = withQuery('/documents', new URLSearchParams({ topic: featuredTopic }))
 
 function TopicRecord({ doc }: { doc: ComplianceDocument }) {
   return (
@@ -33,7 +33,7 @@ export function HomePage() {
   const navigate = useNavigate()
   const stats = useApi<Analytics>('/analytics')
   const latest = useApi<DocumentList>('/documents')
-  const topicDocuments = latest.status === 'ready' ? latest.data.items.filter((doc) => doc.category === featuredCategory) : []
+  const topicDocuments = latest.status === 'ready' ? latest.data.items.filter((doc) => doc.topic === featuredTopic) : []
   const recentDocuments = latest.status === 'ready' ? latest.data.items.slice(0, 3) : []
   const featuredDocument = topicDocuments.find((doc) => !recentDocuments.some((recent) => recent.id === doc.id)) ?? topicDocuments[0]
 
@@ -68,7 +68,7 @@ export function HomePage() {
           <section className="index-topic" aria-labelledby="featured-heading">
             <h2 id="featured-heading">跨境资金专题</h2>
             {featuredDocument && <TopicRecord doc={featuredDocument} />}
-            {!featuredDocument && latest.status === 'ready' && latest.data.facets.categories.some(({ label }) => label === featuredCategory) && <EarlierTopicRecord />}
+            {!featuredDocument && latest.status === 'ready' && latest.data.facets.topics.some(({ label }) => label === featuredTopic) && <EarlierTopicRecord />}
             <Link className="text-link index-topic-link" to={featuredUrl} aria-label="打开专题（跨境资金）">打开专题 <ArrowRight size={17} aria-hidden /></Link>
           </section>
 

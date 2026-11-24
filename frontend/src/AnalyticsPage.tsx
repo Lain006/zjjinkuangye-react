@@ -1,6 +1,6 @@
-import { ArrowRight, CalendarDays, ChartNoAxesColumnIncreasing, FileText, Globe2 } from 'lucide-react'
+import { ArrowRight, ChartNoAxesColumnIncreasing } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { displayDate, useApi, withQuery, type Analytics } from './api'
+import { useApi, withQuery, type Analytics } from './api'
 import { LoadingBlock, PageHeading, StateBlock } from './components'
 import { filterKeys, filterLabels, filterValue, readFilters } from './filters'
 import CategoryDistribution from './CategoryDistribution'
@@ -9,16 +9,11 @@ import { MonthTimeline, RegionSpecimens } from './EvidenceCharts'
 function AnalyticsContent({ data, params }: { data: Analytics; params: URLSearchParams }) {
   return (
     <>
-      <dl className="analytics-metrics">
-        <div><dt><FileText size={18} aria-hidden /> 匹配文献</dt><dd>{data.total.toLocaleString('zh-CN')}<span>条</span></dd></div>
-        <div><dt><Globe2 size={18} aria-hidden /> 覆盖地区</dt><dd>{data.regions.length.toLocaleString('zh-CN')}<span>个</span></dd></div>
-        <div><dt><CalendarDays size={18} aria-hidden /> 最近采集</dt><dd>{displayDate(data.latestCollectedAt)}</dd></div>
-      </dl>
       {data.total > 0 ? (
         <div className="analytics-layout">
-          <CategoryDistribution key={params.toString()} items={data.categories} params={params} total={data.total} />
-          <MonthTimeline items={data.months} total={data.total} params={params} />
-          <RegionSpecimens items={data.regions} params={params} />
+          <CategoryDistribution key={params.toString()} items={data.topics} params={params} total={data.total} />
+          <MonthTimeline key={params.toString()} items={data.months} total={data.total} params={params} />
+          <RegionSpecimens key={params.toString()} items={data.regions} params={params} />
         </div>
       ) : (
         <StateBlock title="当前范围暂无数据" detail="可以清除筛选，查看文献库整体分布。">
@@ -47,6 +42,7 @@ export default function AnalyticsPage() {
           }) : <span>全部已发布文献</span>}
         </div>
         {params.size > 0 && <button className="inline-button" type="button" onClick={() => navigate('/analytics')}>清除筛选</button>}
+        {analytics.status === 'ready' && <strong className="analytics-total">{analytics.data.total.toLocaleString('zh-CN')} 条文献</strong>}
         <Link data-carry-link="" className="text-link" to={withQuery('/documents', params)}>打开相关文献 <ArrowRight size={16} aria-hidden /></Link>
       </div>
       {analytics.status === 'loading' && <LoadingBlock label="正在汇总文献" />}

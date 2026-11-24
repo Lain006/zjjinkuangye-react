@@ -1,7 +1,8 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
-import { Archive, ChevronLeft, ChevronRight, CircleCheck, FileText, PencilLine } from 'lucide-react'
+import { Archive, CircleCheck, FileText, PencilLine } from 'lucide-react'
 import { useMemo } from 'react'
-import type { AdminDocument, DocumentPage, DocumentStatus } from './api'
+import { PageControls } from '../Pagination'
+import { evidenceGaps, type AdminDocument, type DocumentPage, type DocumentStatus } from './api'
 
 export const statusLabels: Record<DocumentStatus, string> = {
   draft: '草稿',
@@ -18,6 +19,11 @@ type Props = {
   onEdit: (id: string, trigger: HTMLButtonElement) => void
   onAction: (document: AdminDocument, action: StatusAction, trigger: HTMLButtonElement) => void
   onPage: (page: number) => void
+}
+
+function EvidenceGaps({ document }: { document: AdminDocument }) {
+  const gaps = evidenceGaps(document, document.topicConfirmed)
+  return gaps.length ? <small className="admin-content-gap">待补：{gaps.join('、')}</small> : null
 }
 
 export default function DocumentsTable({ data, actionBusy, notice, onEdit, onAction, onPage }: Props) {
@@ -37,7 +43,8 @@ export default function DocumentsTable({ data, actionBusy, notice, onEdit, onAct
             <span>{row.original.title}</span>
             <PencilLine size={14} aria-hidden="true" />
           </button>
-          <span>{row.original.sourceName} · {row.original.category}</span>
+          <span>{row.original.sourceName} · {row.original.topic ?? row.original.category}</span>
+          <EvidenceGaps document={row.original} />
           {notice?.documentId === row.original.id && (
             <small className={`admin-row-feedback admin-row-feedback--${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
               {notice.text}
@@ -102,9 +109,6 @@ export default function DocumentsTable({ data, actionBusy, notice, onEdit, onAct
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
-    manualPagination: true,
-    rowCount: data.total,
-    state: { pagination: { pageIndex: data.page - 1, pageSize: data.pageSize } },
   })
 
   if (!data.items.length) {
@@ -145,29 +149,7 @@ export default function DocumentsTable({ data, actionBusy, notice, onEdit, onAct
           </tbody>
         </table>
       </div>
-      <nav className="admin-pagination" aria-label="资料分页">
-        <span>第 {data.page} / {table.getPageCount()} 页 · 共 {data.total} 条</span>
-        <div>
-          <button
-            type="button"
-            className="admin-icon-button"
-            aria-label="上一页"
-            disabled={!table.getCanPreviousPage() || actionBusy}
-            onClick={() => onPage(data.page - 1)}
-          >
-            <ChevronLeft size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="admin-icon-button"
-            aria-label="下一页"
-            disabled={!table.getCanNextPage() || actionBusy}
-            onClick={() => onPage(data.page + 1)}
-          >
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
-        </div>
-      </nav>
+      <PageControls data={data} label="资料分页" onPage={onPage} disabled={actionBusy} />
     </>
   )
 }

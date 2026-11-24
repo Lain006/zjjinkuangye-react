@@ -8,6 +8,9 @@ export interface ComplianceDocument {
   sourceType: string
   region: string
   category: string
+  topic: string
+  evidenceLocator: string
+  evidenceSourceUrl: string | null
   publishDate: string | null
   collectedAt: string
   summary: string
@@ -30,6 +33,7 @@ export interface DocumentList {
   facets: {
     regions: Tally[]
     categories: Tally[]
+    topics: Tally[]
     sourceTypes: Tally[]
   }
 }
@@ -40,6 +44,7 @@ export interface Analytics {
   months: Tally[]
   regions: Tally[]
   categories: Tally[]
+  topics: Tally[]
 }
 
 type ApiState<T> =
@@ -59,10 +64,25 @@ class ApiError extends Error {
 
 const apiBase = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
+const publicationEvents = typeof BroadcastChannel === 'function' ? new BroadcastChannel('zijin-publication') : null
+
+export function notifyPublishedChange() {
+  publicationEvents?.postMessage('documents-changed')
+}
+
 export function useApi<T>(path: string): ApiState<T> & { retry: () => void } {
   const [attempt, setAttempt] = useState(0)
+  const [revision, setRevision] = useState(0)
   const [response, setResponse] = useState<{ key: string; state: ApiState<T> }>()
   const key = JSON.stringify([path, attempt])
+
+  useEffect(() => {
+    const reload = (event: MessageEvent) => {
+      if (event.data === 'documents-changed') setRevision(value => value + 1)
+    }
+    publicationEvents?.addEventListener('message', reload)
+    return () => publicationEvents?.removeEventListener('message', reload)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -87,7 +107,7 @@ export function useApi<T>(path: string): ApiState<T> & { retry: () => void } {
 
     void load()
     return () => controller.abort()
-  }, [key, path])
+  }, [key, path, revision])
 
   const state = response?.key === key ? response.state : { status: 'loading' as const }
   return { ...state, retry: () => setAttempt((value) => value + 1) }

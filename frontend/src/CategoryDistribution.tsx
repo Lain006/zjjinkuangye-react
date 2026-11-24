@@ -1,98 +1,76 @@
-import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { withQuery, type Tally } from './api'
 import { changeFilter } from './filters'
+import { useStageMotion } from './stageMotion'
 import './analytics.css'
 
-type View = 'chart' | 'list'
-const views = ['chart', 'list'] as const
-const viewLabels = { chart: '占比图', list: '数量列表' }
 const percent = new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 1 })
 
-function ViewSwitch({ view, onChange, id }: { view: View; onChange: (next: View) => void; id: string }) {
-  const start = useRef<{ id: number; x: number; step: number; value: number } | null>(null)
-  const moved = useRef(false)
-  const [position, setPosition] = useState<number | null>(null)
-  const [instant, setInstant] = useState(false)
-  const current = view === 'chart' ? 0 : 1
-
-  function begin(event: PointerEvent<HTMLButtonElement>) {
-    if (!event.isPrimary || event.button !== 0 || start.current) return
-    const step = event.currentTarget.getBoundingClientRect().width
-    start.current = { id: event.pointerId, x: event.clientX, step, value: current }
-    moved.current = false
-    setInstant(false)
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  function travel(event: PointerEvent<HTMLButtonElement>) {
-    const drag = start.current
-    if (!drag || drag.id !== event.pointerId) return null
-    const delta = event.clientX - drag.x
-    if (!moved.current && Math.abs(delta) < 4) return null
-    moved.current = true
-    return Math.max(0, Math.min(1, drag.value + delta / drag.step))
-  }
-
-  function finish(event: PointerEvent<HTMLButtonElement>) {
-    if (event.pointerId !== start.current?.id) return
-    const end = travel(event)
-    if (end !== null) {
-      const next = views[end < 0.5 ? 0 : 1]
-      onChange(next)
-      document.getElementById(id + next)?.focus({ preventScroll: true })
-    }
-    start.current = null
-    setPosition(null)
-  }
-
-  function keyboard(event: KeyboardEvent<HTMLButtonElement>) {
-    let next: View
-    if (event.key === 'Home') next = 'chart'
-    else if (event.key === 'End') next = 'list'
-    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') next = view === 'chart' ? 'list' : 'chart'
-    else return
-    event.preventDefault()
-    setInstant(true)
-    onChange(next)
-    document.getElementById(id + next)?.focus()
-  }
-
-  return (
-    <div className="theme-switch" role="tablist" aria-label="主题分布视图">
-      <span aria-hidden className="theme-switch-thumb" data-instant={instant} data-dragging={position !== null}
-        style={{ transform: `translateX(${100 * (position ?? current)}%)` }} />
-      {views.map((mode) => (
-        <button key={mode} type="button" id={id + mode} role="tab" aria-selected={view === mode}
-          aria-controls={id + 'panel'} tabIndex={view === mode ? 0 : -1}
-          onKeyDown={keyboard} onPointerDown={begin}
-          onPointerMove={(event) => { const next = travel(event); if (next !== null) setPosition(next) }}
-          onPointerUp={finish} onLostPointerCapture={(event) => {
-            if (start.current?.id === event.pointerId) { start.current = null; setPosition(null) }
-          }}
-          onClick={(event) => { if (!moved.current || !event.detail) onChange(mode) }}>
-          {viewLabels[mode]}
-        </button>
-      ))}
-    </div>
-  )
+const oreColors: Record<string, string> = {
+  '跨境资金与金融合规': '#9edbb3',
+  '贸易与海关合规': '#d6c98f',
+  '矿产政策与供应链尽调': '#9bcad1',
+  '环境、气候与矿山安全': '#d4a7b7',
+  '数据跨境与隐私': '#c8badc',
+  '企业运营与治理': '#efab7c',
+  '其他': '#bdc8ba',
 }
 
-const oreColors: Record<string, string> = { 跨境资金: '#9edbb3', 企业动态: '#efab7c', 数据跨境: '#c8badc' }
-const secondaryColors = ['#9bcad1', '#d6c98f', '#d4a7b7']
-
 function oreColor(label: string) {
-  if (oreColors[label]) return oreColors[label]
-  let hash = 0
-  for (const ch of label) hash = (Math.imul(hash, 31) + ch.charCodeAt(0)) >>> 0
-  return secondaryColors[hash % secondaryColors.length]
+  return oreColors[label] ?? oreColors['其他']
+}
+
+function useIdleVeinFlow(count: number, hovered: boolean) {
+  const plate = useRef<HTMLDivElement>(null)
+  const last = useRef(-1)
+  const [flow, setFlow] = useState<{ index: number; cycle: number } | null>(null)
+  const motion = useStageMotion()
+
+  useEffect(() => {
+    if (motion !== 'running' || hovered || !plate.current) return
+    let visible = false
+    let timer: number | undefined
+    function schedule(initial: boolean) {
+      window.clearTimeout(timer)
+      if (!visible || document.hidden) {
+        setFlow(null)
+        return
+      }
+      timer = window.setTimeout(() => {
+        // Skip the last branch so the next trace travels a different seam.
+        const previous = last.current
+        const pool = count > 1 && previous >= 0 ? count - 1 : count
+        const pick = Math.floor(Math.random() * pool)
+        const index = pool < count && pick >= previous ? pick + 1 : pick
+        last.current = index
+        setFlow(flow => ({ index, cycle: (flow?.cycle ?? 0) + 1 }))
+        schedule(false)
+      }, initial ? 650 + Math.random() * 400 : 2900 + Math.random() * 1100)
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting
+      schedule(true)
+    })
+    const onVisibility = () => schedule(true)
+    observer.observe(plate.current)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [count, hovered, motion])
+  return { plate, flow: hovered || motion !== 'running' ? null : flow, motion, stopFlow: () => setFlow(null) }
 }
 
 function VeinChart({ items, total, link }: { items: Tally[]; total: number; link: (label: string) => string }) {
   const [selected, setSelected] = useState(items[0].label)
-  const [preview, setPreview] = useState<string | null>(null)
-  const current = items.find(({ label }) => label === (preview ?? selected)) ?? items[0]
+  const [hovered, setHovered] = useState<string | null>(null)
+  const { plate, flow, motion, stopFlow } = useIdleVeinFlow(items.length, hovered !== null)
+  const [pulse, setPulse] = useState(0)
+  const current = items.find(({ label }) => label === selected) ?? items[0]
   const grainId = useId()
   // At either end of the split, each band occupies its exact share of the input bundle.
   const bundle = 76
@@ -109,14 +87,20 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
       C289 ${source + 16} 330 ${target + 7} 381 ${target + 7} L429 ${target + 7} L453 ${target - 4} L505 ${target - 4} Q528 ${target - 4} 549 ${target} L601 ${target}`
     return { ...item, width, path, target, color: oreColor(item.label) }
   })
+  function preview(label: string, pointerType: string) {
+    if (pointerType !== 'mouse' || motion !== 'running') return
+    stopFlow()
+    setHovered(label)
+  }
+
   function choose(label: string) {
     setSelected(label)
-    setPreview(null)
+    setPulse(value => value + 1)
   }
 
   return (
     <div className="theme-chart-layout">
-      <div className="vein-plate">
+      <div className="vein-plate" ref={plate}>
         <svg className="vein-figure" viewBox={`0 0 670 ${height}`} preserveAspectRatio="none" role="group" aria-label="按文献数量分岔的主题矿脉">
           <defs>
             <pattern id={grainId} width="15" height="15" patternUnits="userSpaceOnUse">
@@ -132,13 +116,12 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
             })}
             <rect width="670" height={height} fill={`url(#${grainId})`} />
           </g>
-          {branches.map(({ label, count, width, path, target, color }) => {
+          {branches.map(({ label, count, width, path, target, color }, index) => {
             const active = current.label === label
             return <g key={label} className="vein-branch" role="button" tabIndex={0} aria-label={`选择主题 ${label}，${count} 条`}
-              aria-pressed={selected === label} data-active={active} onClick={() => choose(label)}
-              onFocus={() => setPreview(label)} onBlur={() => setPreview(null)}
-              onPointerEnter={e => { if (e.pointerType === 'mouse') setPreview(label) }}
-              onPointerLeave={() => setPreview(null)}
+              aria-pressed={selected === label} data-active={active} data-hovered={hovered === label} onClick={() => choose(label)}
+              onPointerEnter={event => preview(label, event.pointerType)}
+              onPointerLeave={() => setHovered(current => current === label ? null : current)}
               onKeyDown={e => {
                 if (e.key !== 'Enter' && e.key !== ' ') return
                 e.preventDefault()
@@ -149,8 +132,16 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
               <path className="vein-band" fill={color} d={`M600 ${target - width / 2} L615 ${target - 2} V${target + 2} L600 ${target + width / 2}Z`} />
               <path d={path} className="vein-thread" pathLength="1" fill="none" strokeWidth={Math.min(2.6, width * .25)} pointerEvents="none"/>
               <path d={path} fill="none" stroke="transparent" strokeWidth={Math.max(28, width)} />
+              {active && pulse > 0 && <path key={pulse} d={path} className="vein-pulse" pathLength="1"
+                strokeWidth={Math.min(4, width + 1)} fill="none" pointerEvents="none" />}
+              {(flow?.index === index || (motion === 'running' && hovered === label)) &&
+                <path key={hovered === label ? 'hover' : flow?.cycle} d={path}
+                  className={hovered === label ? 'vein-flow vein-flow--hover' : 'vein-flow vein-flow--idle'}
+                  onAnimationEnd={hovered === label ? undefined : stopFlow}
+                  pathLength="1" fill="none" strokeWidth={Math.max(1.1, Math.min(2.4, width * .35))} pointerEvents="none" />}
               <g className="vein-end" transform={`translate(606,${target})`}>
                 <path d="M-5 0 5-11H43L50 0 43 11H5Z" fill={color} stroke="#1d352f" strokeWidth="1.5" />
+                {active && pulse > 0 && <path key={pulse} d="M-5 0 5-11H43L50 0 43 11H5Z" className="vein-crystal" pointerEvents="none" />}
                 <text x="22" y="5" textAnchor="middle" textLength={count >= 1000 ? 34 : undefined}
                   lengthAdjust="spacingAndGlyphs">{count.toLocaleString('zh-CN')}</text>
               </g>
@@ -162,12 +153,13 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
         <ul className="theme-legend" aria-label="各主题文献数量与占比">
           {items.map((item) => (
             <li key={item.label}>
-              <Link data-carry-link="" to={link(item.label)} data-active={current.label === item.label}
-                onPointerEnter={e => { if (e.pointerType === 'mouse') setPreview(item.label) }} onPointerLeave={() => setPreview(null)}
-                onFocus={() => setPreview(item.label)} onBlur={() => setPreview(null)}>
+              <button type="button" aria-pressed={current.label === item.label} data-hovered={hovered === item.label}
+                onPointerEnter={event => preview(item.label, event.pointerType)}
+                onPointerLeave={() => setHovered(current => current === item.label ? null : current)}
+                onClick={() => choose(item.label)}>
                 <span aria-hidden className="vein-swatch" style={{ '--ore-color': oreColor(item.label) } as CSSProperties} />
                 <span>{item.label}</span><span className="theme-value">{item.count} 条 · {percent.format(item.count / total)}</span>
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
@@ -182,22 +174,14 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
 
 export default function CategoryDistribution({ items, total, params }: { items: Tally[]; total: number; params: URLSearchParams }) {
   const id = useId()
-  const [view, setView] = useState<View>('chart')
-  const link = (label: string) => withQuery('/documents', changeFilter(params, 'category', label))
+  const link = (label: string) => withQuery('/documents', changeFilter(params, 'topic', label))
   return (
-    <section className="panel analytics-panel category-panel" aria-labelledby={id + 'title'}>
+    <section className="panel analytics-panel category-panel" aria-labelledby={id}>
       <div className="analytics-panel-top">
-        <div><h2 id={id + 'title'}>主题分布</h2><p>矿脉的宽度对应各主题的文献占比。</p></div>
-        {items.length > 0 && <ViewSwitch view={view} onChange={setView} id={id} />}
+        <div><h2 id={id}>主题分布</h2><p>矿脉的宽度对应各主题的文献占比。</p></div>
       </div>
       {!items.length ? <p className="muted chart-empty">暂无可汇总的主题。</p>
-        : <div role="tabpanel" id={id + 'panel'} aria-labelledby={id + view}>
-          {view === 'chart' ? <VeinChart items={items} total={total} link={link} /> :
-            <table className="theme-table"><thead><tr><th scope="col">主题</th><th scope="col">文献数</th><th scope="col">占比</th></tr></thead>
-              <tbody>{items.map(({ label, count }) => <tr key={label}><th scope="row"><Link data-carry-link="" className="text-link" to={link(label)}>{label}<ArrowUpRight size={14} aria-hidden /></Link></th>
-                <td>{count}</td><td>{percent.format(count / total)}</td></tr>)}</tbody>
-            </table>}
-        </div>}
+        : <VeinChart items={items} total={total} link={link} />}
     </section>
   )
 }

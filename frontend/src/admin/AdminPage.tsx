@@ -1,5 +1,7 @@
+import { notifyPublishedChange } from '../api'
+import { lastPage, PageControls, PageJump } from '../Pagination'
 import {
-  ArrowLeft, Archive, CircleAlert, CircleCheck, ClipboardList, ExternalLink,
+  ArrowLeft, Archive, CircleAlert, CircleCheck, ExternalLink,
   FilePlus2, Link2, LoaderCircle, LockKeyhole, LogOut, RefreshCw, Search,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
@@ -7,7 +9,7 @@ import { Link } from 'react-router-dom'
 import DocumentEditor, { AdminModal, emptyDraft, isSecureSource, type EditorState } from './DocumentEditor'
 import DocumentImport from './DocumentImport'
 import DocumentsTable, { statusLabels, type StatusAction } from './DocumentsTable'
-import { adminApi, AdminApiError, changedDraftFields, explainError, type AdminDocument, type AuditEntry, type DocumentStatus, type DraftInput, type Source } from './api'
+import { adminApi, AdminApiError, changedDraftFields, explainError, type AdminDocument, type AuditPage, type DocumentStatus, type DraftInput, type Source } from './api'
 import './admin.css'
 
 type Resource<T> = { kind: 'loading' } | { kind: 'ready'; value: T } | { kind: 'error'; error: unknown }
@@ -140,38 +142,33 @@ const actionTime = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 })
 
-function AuditPanel({ data, retry }: { data: Resource<AuditEntry[]>; retry: () => void }) {
-  const [showAll, setShowAll] = useState(false)
-  const visible = data.kind === 'ready' ? data.value.slice(0, showAll ? data.value.length : 12) : []
+function AuditPanel({ data, retry, onPage }: { data: Resource<AuditPage>; retry: () => void; onPage: (page: number) => void }) {
+  const visible = data.kind === 'ready' ? data.value.items : []
   return (
-    <aside className="admin-audit" aria-labelledby="admin-audit-heading">
+    <section className="admin-audit" aria-labelledby="admin-audit-heading">
       <div className="admin-audit__heading">
-        <ClipboardList size={20} strokeWidth={1.7} aria-hidden="true" />
-        <h2 id="admin-audit-heading">操作记录</h2>
+        <h2 id="admin-audit-heading" tabIndex={-1}>操作记录</h2>
+        {data.kind === 'ready' && <PageJump data={data.value} label="跳到操作记录页码" onPage={onPage} />}
       </div>
       {data.kind === 'loading' && <Loading message="正在读取操作记录" />}
       {data.kind === 'error' && <ErrorMessage message={explainError(data.error)} retry={retry} />}
-      {data.kind === 'ready' && data.value.length === 0 && <p className="admin-audit__empty">暂无操作记录。</p>}
+      {data.kind === 'ready' && !visible.length && <p className="admin-audit__empty">暂无操作记录。</p>}
       {visible.length > 0 && (
-        <ol className="admin-audit__feed" id="admin-audit-entries" aria-labelledby="admin-audit-heading" tabIndex={0}>
+        <ol className="admin-audit__feed" id="admin-audit-entries" aria-labelledby="admin-audit-heading">
           {visible.map((entry) => {
             const date = new Date(entry.createdAt)
             return (
               <li key={entry.id}>
                 <strong>{actionLabels[entry.action] ?? '资料操作'}</strong>
+                <span title={entry.documentTitle}>{entry.documentTitle}</span>
                 {!Number.isNaN(date.valueOf()) && <time dateTime={entry.createdAt}>{actionTime.format(date)}</time>}
-                <span title={entry.documentId}>记录 {entry.documentId}</span>
               </li>
             )
           })}
         </ol>
       )}
-      {data.kind === 'ready' && data.value.length > 12 && (
-        <button className="admin-clear admin-audit__expand" type="button" aria-controls="admin-audit-entries" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
-          {showAll ? '收起较早记录' : `查看全部 ${data.value.length} 条记录`}
-        </button>
-      )}
-    </aside>
+      {data.kind === 'ready' && <PageControls data={data.value} label="操作记录分页" onPage={onPage} />}
+    </section>
   )
 }
 
@@ -251,8 +248,11 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<DocumentStatus | ''>('')
   const [page, setPage] = useState(1)
+  const [auditPage, setAuditPage] = useState(1)
+  const [view, setView] = useState<'catalog' | 'audit'>('catalog')
   const [refresh, setRefresh] = useState(0)
   const [sourcesRefresh, setSourcesRefresh] = useState(0)
+  const [topicsRefresh, setTopicsRefresh] = useState(0)
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [importing, setImporting] = useState(false)
   const [confirm, setConfirm] = useState<Confirmation | null>(null)
@@ -266,7 +266,13 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
 
   const loadDocuments = useCallback((signal: AbortSignal) => adminApi.documents(page, query, filter, signal), [filter, page, query])
   const documents = useResource(loadDocuments, refresh, expired)
-  const audit = useResource(adminApi.audit, refresh, expired)
+  const loadAudit = useCallback((signal: AbortSignal) => adminApi.audit(auditPage, signal), [auditPage])
+  const audit = useResource(loadAudit, refresh, expired)
+  const topics = useResource(adminApi.topics, topicsRefresh, expired)
+  const documentOverflow = documents.kind === 'ready' && page > lastPage(documents.value)
+  const auditOverflow = audit.kind === 'ready' && auditPage > lastPage(audit.value)
+  if (documentOverflow) setPage(lastPage(documents.value))
+  if (auditOverflow) setAuditPage(lastPage(audit.value))
   const sources = useResource(adminApi.sources, sourcesRefresh, expired)
 
   useEffect(() => () => activeRead.current?.abort(), [])
@@ -359,9 +365,11 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
           return
         }
         await adminApi.update(editor.document.id, changes)
+        if (editor.document.status === 'published') notifyPublishedChange()
         setNotice({ kind: 'success', text: '已保存资料修改。', documentId: editor.document.id })
       } else {
         const created = await adminApi.create(draft)
+        setView('catalog')
         setFilter('draft')
         setSearch('')
         setQuery('')
@@ -383,9 +391,9 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
     setActionError('')
     try {
       await adminApi.setStatus(confirm.document.id, confirm.action)
+      notifyPublishedChange()
       setNotice({ kind: 'success', text: confirm.action === 'publish' ? '资料已发布，访客现在可以查看。' : '资料已归档。', documentId: confirm.document.id })
       setConfirm(null)
-      setPage(1)
       refreshData()
     } catch (error) {
       setActionError(expiredOrExplain(error))
@@ -426,7 +434,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
 
   const isPublishing = confirm?.action === 'publish'
   const busy = Boolean(working) || saving
-  const noticeRowVisible = notice?.documentId && documents.kind === 'ready' && documents.value.items.some((item) => item.id === notice.documentId)
+  const noticeRowVisible = view === 'catalog' && notice?.documentId && documents.kind === 'ready' && documents.value.items.some((item) => item.id === notice.documentId)
 
   return (
     <div className="admin-console">
@@ -471,10 +479,23 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
         </div>
       )}
 
-      <div className="admin-workgrid">
-        <section className="admin-library" aria-labelledby="admin-documents-heading" aria-busy={documents.kind === 'loading'}>
+      <div className="admin-workspace-tabs" role="tablist" aria-label="采集工作区">
+        {(['catalog', 'audit'] as const).map(tab => <button key={tab} id={`admin-tab-${tab}`}
+          type="button" role="tab" aria-selected={view === tab} aria-controls="admin-workspace-panel"
+          tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)}
+          onKeyDown={event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            const next = event.key === 'Home' ? 'catalog' : event.key === 'End' ? 'audit' : tab === 'catalog' ? 'audit' : 'catalog'
+            setView(next)
+            document.getElementById(`admin-tab-${next}`)?.focus()
+          }}>{tab === 'catalog' ? '资料目录' : '操作记录'}</button>)}
+      </div>
+      <div className="admin-workgrid" id="admin-workspace-panel" role="tabpanel" aria-labelledby={`admin-tab-${view}`}>
+        {view === 'catalog' ? <section className="admin-library" aria-labelledby="admin-documents-heading" aria-busy={documents.kind === 'loading'}>
           <div className="admin-library__heading">
             <h2 ref={listHeading} id="admin-documents-heading" tabIndex={-1}>资料目录</h2>
+            {documents.kind === 'ready' && !documentOverflow && <PageJump data={documents.value} label="跳到资料页码" onPage={changePage} />}
             <button type="button" className="admin-icon-button" aria-label="刷新资料与操作记录" onClick={refreshData} disabled={busy || documents.kind === 'loading'}>
               <RefreshCw size={17} aria-hidden="true" />
             </button>
@@ -513,11 +534,13 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
           {documents.kind === 'loading' && <Loading message="正在读取资料" />}
           {working === 'edit' && <Loading message="正在打开资料" />}
           {documents.kind === 'error' && <ErrorMessage message={explainError(documents.error)} retry={refreshData} />}
-          {documents.kind === 'ready' && (
+          {documents.kind === 'ready' && !documentOverflow && (
             <DocumentsTable data={documents.value} actionBusy={busy} notice={notice} onEdit={openDocument} onAction={confirmAction} onPage={changePage} />
           )}
-        </section>
-        <AuditPanel data={audit} retry={refreshData} />
+        </section> : <AuditPanel data={auditOverflow ? { kind: 'loading' } : audit} retry={refreshData} onPage={next => {
+          setAuditPage(next)
+          document.getElementById('admin-audit-heading')?.focus()
+        }} />}
       </div>
 
       {importing && (
@@ -525,6 +548,7 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
           onImported={(created, skipped) => {
             setImporting(false)
             setNotice({ kind: 'success', text: `已导入 ${created} 条草稿，跳过 ${skipped} 条重复来源。` })
+            setView('catalog')
             setFilter('draft')
             setPage(1)
             setQuery('')
@@ -533,7 +557,9 @@ function AdminWorkspace({ expired, signedOut }: { expired: () => void; signedOut
           }} />
       )}
       {editor && (
-        <DocumentEditor editor={editor} busy={saving} error={actionError} onSave={(draft) => void save(draft)} onClose={() => setEditor(null)} restoreFocus={restoreFocus} />
+        <DocumentEditor editor={editor} busy={saving} error={actionError}
+          topics={topics.kind === 'ready' ? topics.value : []}
+          topicsIssue={topics.kind === 'error' ? explainError(topics.error) : ''} retryTopics={() => setTopicsRefresh(value => value + 1)} onSave={(draft) => void save(draft)} onClose={() => setEditor(null)} restoreFocus={restoreFocus} />
       )}
       {confirm && (
         <AdminModal

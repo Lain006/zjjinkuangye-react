@@ -10,9 +10,10 @@
     "publishDate": "2020-06-01",
     "collectedAt": "2026-06-01",
     "summary": "总体方案将跨境资金流动自由便利列入海南自由贸易港制度体系，并给出分阶段建设安排。",
-    "excerpt": "",
-    "analysis": "这篇政策可与三亚公布的资金集中运营案例对照。总体制度框架和企业取得具体认定是两类证据。",
-    "status": "published"
+    "excerpt": "通过金融账户隔离，建立资金“电子围网”",
+    "analysis": "这一条适合用来区分账户隔离与资金便利化。矿业集团可画出境内主办主体、境外项目公司与资金账户的对应关系，再核对具体业务的开户条件、资金用途和凭证。总体方案提供制度方向，单笔转账适用的规则仍需回查实施文件。",
+    "status": "published",
+    "evidenceLocator": "二、制度设计（三）第9项"
   },
   {
     "legacyId": 2,
@@ -25,9 +26,11 @@
     "publishDate": "2020-06-01",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "对注册在海南自由贸易港并实质性运营的鼓励类产业企业，减按15%的税率征收企业所得税。",
+    "analysis": "把注册地址、实际管理机构和主营业务分开取证，再用收入明细、人员配置和财务管理记录验证鼓励类项目及实质经营。此处引的是2020年通知，判断以后年度还应核对续期文件、适用目录和具体纳税年度。",
+    "status": "draft",
+    "evidenceLocator": "财税〔2020〕31号第一条",
+    "evidenceSourceUrl": "https://www.mof.gov.cn/zcsjtsgb/gfxwj/202006/t20200623_3583820.htm"
   },
   {
     "legacyId": 3,
@@ -40,9 +43,11 @@
     "publishDate": "2020-06-01",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "从海南自由贸易港进入内地免征进口关税，照章征收进口环节增值税和消费税",
+    "analysis": "可以用进口料件、境内采购料件和内销成交价复算加工增值率，再核对备案生产主体和不予免征的情形。入内地免征的是符合条件货物的进口关税，课堂测算需另列进口环节增值税和消费税。",
+    "status": "draft",
+    "evidenceLocator": "海关总署加工增值货物税收征管暂行办法第二条，计算口径见第四条",
+    "evidenceSourceUrl": "https://cws.mofcom.gov.cn/swcjzc/art/2025/art_aed05e0d9ef34930ad1ccfaffb7baac5.html"
   },
   {
     "legacyId": 4,
@@ -55,9 +60,10 @@
     "publishDate": "2025-06-06",
     "collectedAt": "2026-06-01",
     "summary": "海南自由贸易港门户刊载了三亚中央商务区跨境资金集中运营中心落地信息，并提及紫金国际控股。",
-    "excerpt": "",
-    "analysis": "本条用于定位项目在三亚的早期进展。具体资格范围和申报条件应查主管部门的现行文件。",
-    "status": "published"
+    "excerpt": "紫金国际控股有限公司（以下简称“紫金国控”）成为三亚市首家获批企业",
+    "analysis": "这是一例跨境资金集中运营中心认定。分析资金归集时，可核对获批的法律主体、参与归集的成员企业与合作银行，并把主体认定材料和各项业务备案分开查验。报道能支持获批事件，具体归集或调拨范围须查相应业务文件。",
+    "status": "published",
+    "evidenceLocator": "正文开头第1段"
   },
   {
     "legacyId": 5,
@@ -70,9 +76,10 @@
     "publishDate": "2025-03-13",
     "collectedAt": "2026-06-01",
     "summary": "中国政府网转发了人民银行和外汇局关于扩围本外币一体化资金池试点的信息。",
-    "excerpt": "",
-    "analysis": "可用于展示全国层面的资金跨境管理背景。资金池试点与地方跨境资金集中运营中心应按各自政策核对。",
-    "status": "published"
+    "excerpt": "允许跨国公司通过国内资金主账户办理境外成员企业本外币集中收付业务",
+    "analysis": "这份材料可用于解释主账户与境外成员代收付的关系。课堂上可核对主办企业、成员清单、账户和跨境收付凭证，并区分集中收付与外债、境外放款。材料记录的是2025年3月的试点扩围，分析现行业务应另外核对后续正式通知。",
+    "status": "published",
+    "evidenceLocator": "正文「内容主要包括」第2项"
   },
   {
     "legacyId": 6,
@@ -85,9 +92,10 @@
     "publishDate": "2024-03-22",
     "collectedAt": "2026-06-01",
     "summary": "国家网信办发布数据跨境流动规定，列明部分免予特定申报、合同或者认证程序的情形。",
-    "excerpt": "",
-    "analysis": "本条作为数据跨境主题索引。具体适用需要结合数据类别、数量和业务场景回查原文。",
-    "status": "published"
+    "excerpt": "不包含个人信息或者重要数据的，免予申报数据出境安全评估",
+    "analysis": "在矿产品交易和国际运输案例中，应先盘点外发字段，识别个人信息和重要数据，再核对所涉场景。可以用船期数据、装运单和联系人信息做三种对照。第三条列出特定场景的条件，含个人信息的记录须继续查阅其他条款。",
+    "status": "published",
+    "evidenceLocator": "第三条"
   },
   {
     "legacyId": 7,
@@ -100,9 +108,10 @@
     "publishDate": "2016-04-06",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "step-by-step management recommendations endorsed by governments",
+    "analysis": "从采购台账抽一批矿料，把供应商、冶炼商、原产地、异常红旗和处置决定连成证据链。指南提供尽调方法，某批货物是否有冲突风险仍需结合追溯资料和风险评估。",
+    "status": "draft",
+    "evidenceLocator": "OECD 出版页 Abstract 第1段"
   },
   {
     "legacyId": 8,
@@ -115,9 +124,10 @@
     "publishDate": "2023-10-01",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "CBAM operated under a transitional phase from 2023 to 2025",
+    "analysis": "先从货物归类和进口角色判断某笔交易是否涉及机制，再沿生产工序收集用于核算嵌入排放的数据。摘录说明阶段安排，实际义务取决于交易期间的规则、适用范围和产品。",
+    "status": "draft",
+    "evidenceLocator": "欧盟委员会专题页导言，欧盟排放交易体系段"
   },
   {
     "legacyId": 9,
@@ -130,9 +140,10 @@
     "publishDate": "2025-03-22",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "在报告期内，我们共对36家生产型企业开展了环境合规审查",
+    "analysis": "把报告披露的合规审查覆盖范围与单个矿山的许可证、监测记录和问题整改台账对应起来。集团披露可以证明审查活动有被报告，个别场址在特定日期是否合规仍要核验原始记录与当地要求。",
+    "status": "draft",
+    "evidenceLocator": "《紫金矿业2024年可持续发展报告》环境管理体系，印刷第38页（PDF 第40页）"
   },
   {
     "legacyId": 10,
@@ -145,9 +156,10 @@
     "publishDate": "2026-03-01",
     "collectedAt": "2026-06-01",
     "summary": "报道记录了紫金矿业海外运营中心入驻三亚及其与海南自贸港相关的业务布局。",
-    "excerpt": "",
-    "analysis": "该报道描述运营布局，可与三亚市政府部门发布的企业动态交叉阅读。",
-    "status": "published"
+    "excerpt": "正式将海外运营中心从塞尔维亚迁驻海南三亚",
+    "analysis": "这篇报道可用于辨认海外业务的决策支持平台迁至何处。课程作业可把运营、贸易物流及法务合规职责与实际签约、持证和结算主体逐项对照。报道能说明迁驻和报道所列职能，境外项目资产、许可证与合同主体需另查。",
+    "status": "published",
+    "evidenceLocator": "正文第1段"
   },
   {
     "legacyId": 11,
@@ -160,9 +172,10 @@
     "publishDate": "2021-12-29",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "screening procedures, contingency measures, compliance training, compliance audits, record-keeping and management manual",
+    "analysis": "课堂练习可为出口业务画一张留痕表，把物项核对、客户筛查、审批和记录保存放在发货前。白皮书能说明治理框架，具体货物能否出口还须核对现行清单与许可条件。",
+    "status": "draft",
+    "evidenceLocator": "中国出口管制白皮书，Improved policy guidance 段"
   },
   {
     "legacyId": 12,
@@ -175,9 +188,11 @@
     "publishDate": "2021-08-20",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "shall obtain individual's separate consent",
+    "analysis": "用跨境人事系统举例，逐项确认员工字段、海外接收方、访问权限、告知和同意记录，并区分出境合规路径与个人权利保障。第39条应与第38条和适用的配套规定对读。",
+    "status": "draft",
+    "evidenceLocator": "《个人信息保护法》英文版第三章第39条",
+    "evidenceSourceUrl": "https://en.spp.gov.cn/2021-12/29/c_948419_2.htm"
   },
   {
     "legacyId": 13,
@@ -190,9 +205,11 @@
     "publishDate": "2012-02-16",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "measures to prevent or mitigate money laundering and terrorist financing are proportionate to the risks identified",
+    "analysis": "用矿产品交易付款场景设计风险分级，分别记录受益所有人、异常付款路径与复核结论。建议说明资源与措施应匹配风险，企业操作要求要结合所在司法辖区和相关机构规则。",
+    "status": "draft",
+    "evidenceLocator": "FATF 建议1，Assessing risks and applying a risk-based approach",
+    "evidenceSourceUrl": "https://www.fatf-gafi.org/content/dam/fatf-gafi/recommendations/FATF%20Recommendations%202012.pdf.coredownload.inline.pdf"
   },
   {
     "legacyId": 14,
@@ -205,9 +222,10 @@
     "publishDate": "2024-07-25",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "Companies must identify and address actual and potential adverse human rights and environmental impacts",
+    "analysis": "选一个海外矿山及其承包链，分别列出实际影响、潜在影响、证据来源与补救责任人。欧盟页面说明制度机制，企业是否直接适用还须核对当期正式文本及适用门槛。",
+    "status": "draft",
+    "evidenceLocator": "欧盟委员会专题页，What are the obligations for companies?"
   },
   {
     "legacyId": 15,
@@ -220,9 +238,10 @@
     "publishDate": "2024-05-23",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "at least 40% of the EU’s annual consumption for processing",
+    "analysis": "把采矿、冶炼加工和回收拆成三个节点，说明供给来源集中如何影响关键矿产采购和备选供应商。摘录是欧盟层面的能力基准，单个矿企的供货安排仍需依据合同和适用法规。",
+    "status": "draft",
+    "evidenceLocator": "欧盟委员会专题页，Setting benchmarks by 2030 for domestic capacities"
   },
   {
     "legacyId": 16,
@@ -235,9 +254,11 @@
     "publishDate": "2023-07-12",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "including a chain of custody or traceability system, identifying upstream actors in the supply chain",
+    "analysis": "以镍或锂的上游供应链为例，将批次来源、加工环节、风险记录和供应商合同对照。原始版本可用来解释管理要求的结构，适用日期和范围应对照后续修订后的有效文本。",
+    "status": "draft",
+    "evidenceLocator": "欧盟电池法规原始版本第49条第1款(d)",
+    "evidenceSourceUrl": "https://eur-lex.europa.eu/eli/reg/2023/1542/2023-07-28"
   },
   {
     "legacyId": 17,
@@ -250,9 +271,11 @@
     "publishDate": "2021-12-23",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "The UFLPA establishes a rebuttable presumption",
+    "analysis": "对拟销往美国的货品画出原料、加工和出口路径，将来源证据与对应的批次相连。课堂重点是能否举证到上游，而不是仅凭最终出口地推定合规。实际报关应核对当期的政府指南和适用名单。",
+    "status": "draft",
+    "evidenceLocator": "美国国土安全部《2023 年 UFLPA 执行策略更新》Executive Summary",
+    "evidenceSourceUrl": "https://www.dhs.gov/sites/default/files/2023-08/23_0728_plcy_uflpa-strategy-2023-update-508.pdf"
   },
   {
     "legacyId": 18,
@@ -265,9 +288,10 @@
     "publishDate": "2020-08-05",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "through all phases of a facility’s lifecycle, including closure and post-closure",
+    "analysis": "把尾矿设施证据按建设、运营、关闭和关闭后分段归档，给设计变更、监测、事故演练和披露分别确定核验资料。标准可作为课堂比照框架，个案安全仍需独立技术评估。",
+    "status": "draft",
+    "evidenceLocator": "联合国环境署资料库，摘要"
   },
   {
     "legacyId": 19,
@@ -280,9 +304,10 @@
     "publishDate": "2020-10-01",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "identify, assess and manage environmental and social risks when financing Projects",
+    "analysis": "从贷款方视角检查环社尽调、行动计划、监测及合同承诺，把融资对风险治理的影响与项目取得当地许可分开分析。适用性取决于融资产品和相关机构采用的规则。",
+    "status": "draft",
+    "evidenceLocator": "赤道原则官方网站首页，The Equator Principles"
   },
   {
     "legacyId": 20,
@@ -295,9 +320,10 @@
     "publishDate": "2019-09-12",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "obtain external assurance from a third party, independent assurance provider",
+    "analysis": "把矿场自查、集团层面的公开声明与独立鉴证范围分别列出，再核对声明覆盖矿山及报告期。该原则可用于评价企业提供的责任开采证据，某批黄金的来源还需物流和交易记录支持。",
+    "status": "draft",
+    "evidenceLocator": "世界黄金协会专题页，Assurance 段"
   },
   {
     "legacyId": 21,
@@ -310,9 +336,10 @@
     "publishDate": "2005-06-01",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "trusted traders who voluntarily meet a wide range of criteria",
+    "analysis": "从一票矿产品跨境物流反推供应链安全、报关资料和经营主体，将 AEO 资质、贸易便利和货物本身准入条件分开核对。不同地区互认和便利范围应查具体海关安排。",
+    "status": "draft",
+    "evidenceLocator": "欧盟委员会 AEO 专题页，项目概述"
   },
   {
     "legacyId": 22,
@@ -325,9 +352,10 @@
     "publishDate": "1992-11-07",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "establish and perfect the system of safety management",
+    "analysis": "用这个条款建立课程案例的安全管理对照表，查责任体系、作业条件和安全设施，再按矿山所在地规则核对许可与现场要求。中文法律的英文译页是比较材料，海外项目的直接义务须由当地规定确定。",
+    "status": "draft",
+    "evidenceLocator": "《矿山安全法》英文版第3条"
   },
   {
     "legacyId": 23,
@@ -340,9 +368,10 @@
     "publishDate": "2023-06-08",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "associated with an enterprise’s operations, products and services",
+    "analysis": "选取一个矿山采购案例，区分自身经营与供应关系中的不利影响，分别安排预防、缓解和跟踪。指南属于政府向跨国企业提出的建议，合同或法律义务还需要单独比对。",
+    "status": "draft",
+    "evidenceLocator": "OECD 2023 年版出版页，Abstract"
   },
   {
     "legacyId": 24,
@@ -355,9 +384,11 @@
     "publishDate": "2022-12-19",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "regularly monitor, assess, and transparently disclose",
+    "analysis": "在选址和运营案例中列出生物多样性依赖、影响、风险及可量化指标，再说明数据由谁采集和披露。框架目标提供比较尺度，项目许可或限额需回到所在国制度。",
+    "status": "draft",
+    "evidenceLocator": "《昆明—蒙特利尔全球生物多样性框架》目标15",
+    "evidenceSourceUrl": "https://www.cbd.int/gbf/targets/15"
   },
   {
     "legacyId": 25,
@@ -370,9 +401,10 @@
     "publishDate": "2019-05-02",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "the essential components of a sanctions compliance program",
+    "analysis": "模拟矿产品交易的客户准入，对交易主体、受益所有人、付款路径和运输安排分别记录核验时间和升级流程。框架有助于设计内部控制，某项交易是否受限仍取决于相关司法辖区及当时适用规则。",
+    "status": "draft",
+    "evidenceLocator": "美国财政部新闻稿，首段"
   },
   {
     "legacyId": 26,
@@ -385,9 +417,11 @@
     "publishDate": "2017-05-17",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "Union importers of minerals or metals shall carry out audits via an independent third party",
+    "analysis": "画出矿山、冶炼商、贸易商和欧盟进口商的关系，区分直接义务与客户提出的供应链资料要求。复核时将门槛、相关矿物及第三方审计的例外条件一并查清。",
+    "status": "draft",
+    "evidenceLocator": "欧盟冲突矿产法规第6条第1款，例外见第2款",
+    "evidenceSourceUrl": "https://eur-lex.europa.eu/legal-content/en/TXT/?uri=CELEX%3A32017R0821"
   },
   {
     "legacyId": 27,
@@ -400,9 +434,11 @@
     "publishDate": "2023-06-12",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "companies are required to publicly disclose, beneficial ownership information",
+    "analysis": "将采掘许可证持有人、直接股东和最终受益人分别记录，核对公开登记与企业披露中的身份、控制方式和时间点。透明披露有助于复核利益关系，不能仅凭字段存在认定无利益冲突。",
+    "status": "draft",
+    "evidenceLocator": "《2023 EITI 标准》第2.5(c)项，印刷第20页",
+    "evidenceSourceUrl": "https://eiti.org/sites/default/files/2024-04/2023%20EITI%20Standard_Part%201_Principles%20and%20requirements.pdf"
   },
   {
     "legacyId": 28,
@@ -415,9 +451,11 @@
     "publishDate": "2012-01-01",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "helps companies integrate plans and standards into their core operations",
+    "analysis": "对海外项目建立从风险识别到管理措施、利益相关方沟通和持续监测的台账。贷款方要求的环社管理体系与当地许可各有证据，评价项目时应分别核对。",
+    "status": "draft",
+    "evidenceLocator": "IFC 绩效标准1专题页，2012 年版概述首段",
+    "evidenceSourceUrl": "https://www.ifc.org/en/insights-reports/2012/ifc-performance-standard-1"
   },
   {
     "legacyId": 29,
@@ -430,9 +468,11 @@
     "publishDate": "2023-06-26",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "affect the entity’s cash flows, its access to finance or cost of capital",
+    "analysis": "把矿山水灾等物理风险、碳成本等转型风险分别连接到生产计划、现金流和融资成本。披露应能解释筛选指标和假设，企业适用何种要求还取决于报告辖区和期间。",
+    "status": "draft",
+    "evidenceLocator": "IFRS S2 标准说明，About 的适用范围段",
+    "evidenceSourceUrl": "https://www.ifrs.org/issued-standards/ifrs-sustainability-standards-navigator/ifrs-s2-climate-related-disclosures/"
   },
   {
     "legacyId": 30,
@@ -445,9 +485,10 @@
     "publishDate": "1989-03-22",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "only proceed if and when all States concerned have given their written consent",
+    "analysis": "模拟危险废物跨境转移，逐一标出出口国、进口国和过境国的主管机关、通知及书面同意。课堂上还需核对废物分类、是否禁运及当地实施规定。",
+    "status": "draft",
+    "evidenceLocator": "巴塞尔公约官网，Regulatory system 段，第6和第7条"
   },
   {
     "legacyId": 31,
@@ -460,9 +501,11 @@
     "publishDate": "2025-05-12",
     "collectedAt": "2026-06-01",
     "summary": "",
-    "excerpt": "",
-    "analysis": "",
-    "status": "draft"
+    "excerpt": "meningkatkan nilai tambah melalui hilirisasi nikel",
+    "analysis": "把镍矿、冶炼与电池材料项目画成产业链，比较各节点的加工能力、能耗、环境许可和配套投资。引文仅核实印尼能源与矿产资源部推动镍产业下游增值的表述，旧编目所指2025—2035路线图的具体版本和时间表仍待核对。",
+    "status": "draft",
+    "evidenceLocator": "印尼能源与矿产资源部 2024 年第418号新闻稿，正文第1段（同主题官方补证）",
+    "evidenceSourceUrl": "https://www.esdm.go.id/id/media-center/arsip-berita/hilirisasi-nikel-hasilkan-nilai-tambah-industri-baterai-kendaraan-listrik"
   },
   {
     "id": "d6fc57e6-b1d8-42c2-9cd5-f2cd2e37c3a1",
@@ -474,11 +517,12 @@
     "category": "跨境资金",
     "publishDate": "2026-10-28",
     "summary": "三亚市投资促进局介绍企业出海服务案例，其中记录紫金矿业将海外运营中心迁驻三亚、取得跨境资金集中运营中心认定。",
-    "analysis": "这条材料可以将海南跨境资金制度框架与三亚企业应用接起来。政府文章中的企业经营描述按其原有口径理解。",
+    "analysis": "报道可以连接两类证据：海外运营中心迁驻，以及跨境资金集中运营中心获批。课程案例可分别核对运营主体、账户主体和境外投资备案项目，用资金归集与贸易结算两个场景说明授权边界。招商报道提供事件线索，业务范围仍需以正式认定及银行材料核实。",
     "legacyId": null,
     "collectedAt": "2026-11-23T07:42:02.0366790Z",
-    "excerpt": "",
-    "status": "published"
+    "excerpt": "紫金矿业将海外运营中心迁驻三亚，获批跨境资金集中运营中心",
+    "status": "published",
+    "evidenceLocator": "「跳出“资金外流”误区，挖掘双向落地价值」第2段"
   },
   {
     "id": "7e57b9ce-eccc-42d4-9c13-5285d4238fab",
@@ -490,11 +534,12 @@
     "category": "跨境资金",
     "publishDate": "2026-05-06",
     "summary": "海南省外汇管理部门走访紫金国际中心，与涉外企业讨论跨境贸易及投融资便利化政策落实情况。",
-    "analysis": "调研报道可以佐证主管部门关注的业务场景。它所列的是调研活动和政策服务情况。",
+    "analysis": "把这篇监管走访记录用作制度落实的观察材料。小组可把企业提出的问题和贸易结算、投融资办理环节对应，再核对业务办理凭证和具体规则。走访及座谈说明监管部门了解执行情况，企业可适用的便利化措施需要独立证据。",
     "legacyId": null,
     "collectedAt": "2026-11-23T07:42:02.0366790Z",
-    "excerpt": "",
-    "status": "published"
+    "excerpt": "详细了解企业落实跨境贸易和投融资便利化政策情况",
+    "status": "published",
+    "evidenceLocator": "正文第2段"
   },
   {
     "id": "86607266-c541-463d-97f1-a1f0a14d503a",
@@ -506,10 +551,11 @@
     "category": "企业动态",
     "publishDate": "2026-08-06",
     "summary": "三亚市投资促进局报道紫金海南国际获得海南省大企业总部认定，涉及跨境矿产贸易、海外投资和全球资金结算职能。",
-    "analysis": "本条记录企业总部资质及职能，为资金集中运营专题补充组织背景。两类认定按各自来源解读。",
+    "analysis": "报道可用于核对总部认定的获认定主体。可把总部认定、资金运营中心认定和实际跨境结算资格列成三项查验，分别记录主体、部门、日期和适用业务。文章支持总部认定及报道所列职能，税收待遇和资金业务资格需依据相应文件判断。",
     "legacyId": null,
     "collectedAt": "2026-11-23T07:42:02.0366790Z",
-    "excerpt": "",
-    "status": "published"
+    "excerpt": "被认定为海南省大企业总部",
+    "status": "published",
+    "evidenceLocator": "正文第1段"
   }
 ]

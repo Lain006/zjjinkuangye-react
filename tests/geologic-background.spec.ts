@@ -59,6 +59,10 @@ test('手机检索跨页保留暂停画面，隐藏标签和减少动态都能�
   await expect.poll(running).toBe(true)
   await page.getByRole('button', { name: '暂停全站动效' }).click()
   await expect.poll(running).toBe(false)
+  // A CSS pause can report "paused" while the final sampled time is still pending.
+  await backdrop.evaluate(async node => {
+    await Promise.all(node.getAnimations({ subtree: true }).map(animation => animation.ready))
+  })
   const stopped = await sedimentFrame(backdrop)
   await page.getByRole('searchbox', { name: '搜索合规文献' }).fill('矿业')
   await page.getByRole('button', { name: '搜索', exact: true }).click()
