@@ -1,41 +1,17 @@
 import type { FormEvent } from 'react'
 import { ArrowRight, ArrowUpRight, CalendarDays, ChartNoAxesColumnIncreasing, FileText, Search } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { type Analytics, type ComplianceDocument, type DocumentList, displayDate, useApi, withQuery } from './api'
+import { type Analytics, type DocumentList, displayDate, useApi, withQuery } from './api'
 import { LoadingBlock, StateBlock } from './components'
 import MineralPlate from './MineralPlate'
+import FeaturedTopics from './FeaturedTopics'
 import './home.css'
-
-const featuredTopic = '跨境资金与金融合规'
-const featuredUrl = withQuery('/documents', new URLSearchParams({ topic: featuredTopic }))
-
-function TopicRecord({ doc }: { doc: ComplianceDocument }) {
-  return (
-    <div className="index-topic-record">
-      <h3><Link to={`/documents/${encodeURIComponent(doc.id)}`}>{doc.title}</Link></h3>
-      {doc.summary && <p>{doc.summary}</p>}
-      <div className="index-byline">
-        <span>{doc.sourceName || '来源待补充'}</span>
-        {doc.publishDate && <time dateTime={doc.publishDate}>{displayDate(doc.publishDate)}</time>}
-      </div>
-    </div>
-  )
-}
-
-// A topic may have published records older than the first page of recent acquisitions.
-function EarlierTopicRecord() {
-  const topic = useApi<DocumentList>(featuredUrl)
-  const doc = topic.status === 'ready' && topic.data.items[0]
-  return doc ? <TopicRecord doc={doc} /> : null
-}
 
 export function HomePage() {
   const navigate = useNavigate()
   const stats = useApi<Analytics>('/analytics')
   const latest = useApi<DocumentList>('/documents')
-  const topicDocuments = latest.status === 'ready' ? latest.data.items.filter((doc) => doc.topic === featuredTopic) : []
   const recentDocuments = latest.status === 'ready' ? latest.data.items.slice(0, 3) : []
-  const featuredDocument = topicDocuments.find((doc) => !recentDocuments.some((recent) => recent.id === doc.id)) ?? topicDocuments[0]
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -65,12 +41,7 @@ export function HomePage() {
       </section>
       <div className="container home-archive">
         <div className="index-editions">
-          <section className="index-topic" aria-labelledby="featured-heading">
-            <h2 id="featured-heading">跨境资金专题</h2>
-            {featuredDocument && <TopicRecord doc={featuredDocument} />}
-            {!featuredDocument && latest.status === 'ready' && latest.data.facets.topics.some(({ label }) => label === featuredTopic) && <EarlierTopicRecord />}
-            <Link className="text-link index-topic-link" to={featuredUrl} aria-label="打开专题（跨境资金）">打开专题 <ArrowRight size={17} aria-hidden /></Link>
-          </section>
+          <FeaturedTopics latest={latest.status === 'ready' ? latest.data : undefined} />
 
           <section className="home-recent" aria-labelledby="recent">
             <header className="section-heading">

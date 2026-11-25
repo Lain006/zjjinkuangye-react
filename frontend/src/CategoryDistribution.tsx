@@ -1,10 +1,9 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, Layers3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { withQuery, type Tally } from './api'
 import { changeFilter } from './filters'
 import { useStageMotion } from './stageMotion'
-import './analytics.css'
 
 const percent = new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 1 })
 
@@ -22,14 +21,17 @@ function oreColor(label: string) {
   return oreColors[label] ?? oreColors['其他']
 }
 
-function useIdleVeinFlow(count: number, hovered: boolean) {
+function useIdleVeinFlow(count: number, hovered: boolean, visiblePane: boolean) {
   const plate = useRef<HTMLDivElement>(null)
   const last = useRef(-1)
   const [flow, setFlow] = useState<{ index: number; cycle: number } | null>(null)
   const motion = useStageMotion()
 
   useEffect(() => {
-    if (motion !== 'running' || hovered || !plate.current) return
+    if (motion !== 'running' || hovered || !plate.current || !visiblePane) {
+      setFlow(null)
+      return
+    }
     let visible = false
     let timer: number | undefined
     function schedule(initial: boolean) {
@@ -61,15 +63,21 @@ function useIdleVeinFlow(count: number, hovered: boolean) {
       observer.disconnect()
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [count, hovered, motion])
-  return { plate, flow: hovered || motion !== 'running' ? null : flow, motion, stopFlow: () => setFlow(null) }
+  }, [count, hovered, motion, visiblePane])
+  return { plate, flow: !visiblePane || hovered || motion !== 'running' ? null : flow, motion, stopFlow: () => setFlow(null) }
 }
 
-function VeinChart({ items, total, link }: { items: Tally[]; total: number; link: (label: string) => string }) {
+function VeinChart({ items, total, link, visible }: { items: Tally[]; total: number; link: (label: string) => string; visible: boolean }) {
   const [selected, setSelected] = useState(items[0].label)
   const [hovered, setHovered] = useState<string | null>(null)
-  const { plate, flow, motion, stopFlow } = useIdleVeinFlow(items.length, hovered !== null)
+  const { plate, flow, motion, stopFlow } = useIdleVeinFlow(items.length, hovered !== null, visible)
   const [pulse, setPulse] = useState(0)
+  useEffect(() => {
+    if (!visible) {
+      setHovered(null)
+      setPulse(0)
+    }
+  }, [visible])
   const current = items.find(({ label }) => label === selected) ?? items[0]
   const grainId = useId()
   // At either end of the split, each band occupies its exact share of the input bundle.
@@ -99,7 +107,7 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
   }
 
   return (
-    <div className="theme-chart-layout">
+    <div className="exhibit-layout">
       <div className="vein-plate" ref={plate}>
         <svg className="vein-figure" viewBox={`0 0 670 ${height}`} preserveAspectRatio="none" role="group" aria-label="按文献数量分岔的主题矿脉">
           <defs>
@@ -119,7 +127,7 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
           {branches.map(({ label, count, width, path, target, color }, index) => {
             const active = current.label === label
             return <g key={label} className="vein-branch" role="button" tabIndex={0} aria-label={`选择主题 ${label}，${count} 条`}
-              aria-pressed={selected === label} data-active={active} data-hovered={hovered === label} onClick={() => choose(label)}
+              aria-pressed={active} data-active={active} data-hovered={hovered === label} onClick={() => choose(label)}
               onPointerEnter={event => preview(label, event.pointerType)}
               onPointerLeave={() => setHovered(current => current === label ? null : current)}
               onKeyDown={e => {
@@ -134,7 +142,7 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
               <path d={path} fill="none" stroke="transparent" strokeWidth={Math.max(28, width)} />
               {active && pulse > 0 && <path key={pulse} d={path} className="vein-pulse" pathLength="1"
                 strokeWidth={Math.min(4, width + 1)} fill="none" pointerEvents="none" />}
-              {(flow?.index === index || (motion === 'running' && hovered === label)) &&
+              {visible && (flow?.index === index || (motion === 'running' && hovered === label)) &&
                 <path key={hovered === label ? 'hover' : flow?.cycle} d={path}
                   className={hovered === label ? 'vein-flow vein-flow--hover' : 'vein-flow vein-flow--idle'}
                   onAnimationEnd={hovered === label ? undefined : stopFlow}
@@ -149,7 +157,9 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
           })}
         </svg>
       </div>
-      <div className="vein-index">
+      <div className="exhibit-index vein-index paper-note">
+        <span className="paper-tape" aria-hidden />
+        <h3>沿矿脉找文献</h3>
         <ul className="theme-legend" aria-label="各主题文献数量与占比">
           {items.map((item) => (
             <li key={item.label}>
@@ -158,30 +168,32 @@ function VeinChart({ items, total, link }: { items: Tally[]; total: number; link
                 onPointerLeave={() => setHovered(current => current === item.label ? null : current)}
                 onClick={() => choose(item.label)}>
                 <span aria-hidden className="vein-swatch" style={{ '--ore-color': oreColor(item.label) } as CSSProperties} />
-                <span>{item.label}</span><span className="theme-value">{item.count} 条 · {percent.format(item.count / total)}</span>
+                <span>{item.label}</span>
+                <span className="theme-count">{item.count.toLocaleString('zh-CN')} 条</span>
+                <span className="theme-share">{percent.format(item.count / total)}</span>
               </button>
             </li>
           ))}
         </ul>
-        <div className="theme-readout chart-readout">
-          <span>{current.label} · {current.count} 条 · {percent.format(current.count / total)}</span>
-          <Link data-carry-link="" className="text-link" to={link(current.label)} aria-label={`查看这组文献（${current.label}）`}>查看这组文献 <ArrowUpRight size={16} aria-hidden /></Link>
+        <div className="exhibit-link">
+          <Link data-carry-link="" className="text-link" to={link(current.label)} aria-label={`查看所选主题文献（${current.label}）`}>查看所选主题文献 <ArrowUpRight size={16} aria-hidden /></Link>
         </div>
       </div>
     </div>
   )
 }
 
-export default function CategoryDistribution({ items, total, params }: { items: Tally[]; total: number; params: URLSearchParams }) {
+export default function CategoryDistribution({ items, total, params, visible }: { items: Tally[]; total: number; params: URLSearchParams; visible: boolean }) {
   const id = useId()
   const link = (label: string) => withQuery('/documents', changeFilter(params, 'topic', label))
   return (
     <section className="panel analytics-panel category-panel" aria-labelledby={id}>
       <div className="analytics-panel-top">
-        <div><h2 id={id}>主题分布</h2><p>矿脉的宽度对应各主题的文献占比。</p></div>
+        <div><h2 id={id}>主题分布 <Layers3 className="paper-heading-icon" size={34} aria-hidden /></h2>
+          <p>矿脉越宽，这个主题收录的文献越多。</p></div>
       </div>
       {!items.length ? <p className="muted chart-empty">暂无可汇总的主题。</p>
-        : <VeinChart items={items} total={total} link={link} />}
+        : <VeinChart items={items} total={total} visible={visible} link={link} />}
     </section>
   )
 }

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
-import { ArrowUpRight, Database } from 'lucide-react'
+import { ArrowUpRight, ChartNoAxesColumnIncreasing, Database, FolderOpen, House, NotebookPen } from 'lucide-react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { HomePage } from './HomePage'
 import { DocumentPage, LibraryPage } from './Documents'
@@ -7,6 +7,7 @@ import { LoadingBlock, StateBlock } from './components'
 import { StageMotionControl, StageSpotlight } from './Stage'
 import { StageBackdrop } from './GeologicBackdrop'
 import RouteCarry from './RouteCarry'
+import './paper-ui.css'
 
 const AnalyticsPage = lazy(() => import('./AnalyticsPage'))
 const AdminPage = lazy(() => import('./admin/AdminPage'))
@@ -48,10 +49,10 @@ export default function App() {
               </span>
             </Link>
             <nav className="topnav" aria-label="主导航">
-              <NavLink end to="/">首页</NavLink>
-              <NavLink to="/documents">文献库</NavLink>
-              <NavLink to="/analytics">数据分析</NavLink>
-              <NavLink to="/admin">采集管理</NavLink>
+              <NavLink end to="/"><House size={15} aria-hidden />首页</NavLink>
+              <NavLink to="/documents"><FolderOpen size={15} aria-hidden />文献库</NavLink>
+              <NavLink to="/analytics"><ChartNoAxesColumnIncreasing size={15} aria-hidden />数据分析</NavLink>
+              <NavLink to="/admin"><NotebookPen size={15} aria-hidden />采集管理</NavLink>
             </nav>
             <StageMotionControl />
           </div>
