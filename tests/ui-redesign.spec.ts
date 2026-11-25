@@ -310,7 +310,12 @@ test('点光会转向最后落点，暂停和减少动态都能跨页生效', as
   await page.mouse.click(14, 165)
   await page.mouse.click(10, 255)
   const pool = page.locator('.stage-spotlight .lamp-pool')
-  await expect(pool).toHaveAttribute('transform', /translate\(10 255\)/)
+  await expect.poll(() => pool.evaluate((element: SVGGElement) => {
+    const transforms = element.transform.baseVal
+    if (!transforms.numberOfItems) return null
+    const { e, f } = transforms.getItem(0).matrix
+    return [Math.round(e * 1000) / 1000, Math.round(f * 1000) / 1000]
+  })).toEqual([10, 255])
   await expect(page.locator('.stage-spotlight')).toHaveCSS('opacity', '0')
   await page.getByRole('button', { name: '暂停全站动效' }).click()
   await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '文献库' }).click()
